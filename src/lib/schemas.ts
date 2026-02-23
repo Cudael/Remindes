@@ -16,6 +16,14 @@ export const itemUpdateSchema = z.object({
 
 export type ItemUpdateInput = z.infer<typeof itemUpdateSchema>;
 
+// ── Item Attachment DTO ──────────────────────────────────────
+
+export const attachItemFileSchema = z.object({
+  fileId: z.string().min(1, "File ID is required"),
+});
+
+export type AttachItemFileInput = z.infer<typeof attachItemFileSchema>;
+
 // ── File metadata DTO ───────────────────────────────────────
 
 export const fileMetadataSchema = z.object({
