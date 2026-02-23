@@ -20,11 +20,11 @@ interface Item {
   createdAt: string;
 }
 
-async function getItems(): Promise<Item[]> {
+async function getItems(): Promise<{ data: Item[]; error?: string }> {
   const res = await fetch("/api/v1/items");
-  if (!res.ok) return [];
+  if (!res.ok) return { data: [], error: "Failed to load items" };
   const json = await res.json();
-  return json.data;
+  return { data: json.data };
 }
 
 export default function ItemsPage() {
@@ -36,8 +36,11 @@ export default function ItemsPage() {
 
   useEffect(() => {
     let cancelled = false;
-    getItems().then((data) => {
-      if (!cancelled) setItems(data);
+    getItems().then((result) => {
+      if (!cancelled) {
+        setItems(result.data);
+        if (result.error) setError(result.error);
+      }
     });
     return () => { cancelled = true; };
   }, []);
@@ -66,16 +69,20 @@ export default function ItemsPage() {
 
       setName("");
       setType("");
-      setItems(await getItems());
+      const result = await getItems();
+      setItems(result.data);
     });
   }
 
   function handleDelete(id: string) {
     startTransition(async () => {
       const res = await fetch(`/api/v1/items/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        setItems(await getItems());
+      if (!res.ok) {
+        setError("Failed to delete item");
+        return;
       }
+      const result = await getItems();
+      setItems(result.data);
     });
   }
 
