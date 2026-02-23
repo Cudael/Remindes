@@ -25,3 +25,45 @@ export const fileMetadataSchema = z.object({
 });
 
 export type FileMetadataInput = z.infer<typeof fileMetadataSchema>;
+
+// ── File upload-url request ─────────────────────────────────
+
+const ALLOWED_MIME_TYPES = [
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+] as const;
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+
+export const fileUploadUrlSchema = z.object({
+  originalName: z.string().min(1, "Original name is required"),
+  mimeType: z.enum(ALLOWED_MIME_TYPES, {
+    message: "Allowed types: application/pdf, image/jpeg, image/png, image/webp",
+  }),
+  size: z
+    .number()
+    .int()
+    .positive("Size must be a positive integer")
+    .max(MAX_FILE_SIZE, "File size must not exceed 10 MB"),
+});
+
+export type FileUploadUrlInput = z.infer<typeof fileUploadUrlSchema>;
+
+// ── File complete request ───────────────────────────────────
+
+export const fileCompleteSchema = z.object({
+  storageKey: z.string().min(1, "Storage key is required"),
+  originalName: z.string().min(1, "Original name is required"),
+  mimeType: z.enum(ALLOWED_MIME_TYPES, {
+    message: "Allowed types: application/pdf, image/jpeg, image/png, image/webp",
+  }),
+  size: z
+    .number()
+    .int()
+    .positive("Size must be a positive integer")
+    .max(MAX_FILE_SIZE, "File size must not exceed 10 MB"),
+});
+
+export type FileCompleteInput = z.infer<typeof fileCompleteSchema>;
