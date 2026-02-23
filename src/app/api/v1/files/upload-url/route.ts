@@ -25,7 +25,7 @@ export async function POST(req: Request) {
   }
 
   const { mimeType, size } = result.data;
-  const ext = mimeType.split("/").pop();
+  const ext = mimeType.split("/")[1];
   const storageKey = `uploads/${randomUUID()}.${ext}`;
 
   const uploadUrl = await createPresignedUploadUrl(storageKey, mimeType, size);

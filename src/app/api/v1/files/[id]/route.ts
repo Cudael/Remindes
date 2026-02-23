@@ -26,8 +26,8 @@ export async function DELETE(_req: Request, { params }: Params) {
     return error("FORBIDDEN", "You do not own this file", 403);
   }
 
-  await deleteObject(file.storageKey);
   await db.file.delete({ where: { id } });
+  await deleteObject(file.storageKey);
 
   return success({ id });
 }

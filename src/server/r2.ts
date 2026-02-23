@@ -6,34 +6,20 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-const ALLOWED_TYPES = [
-  "application/pdf",
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-] as const;
-
-export type AllowedMimeType = (typeof ALLOWED_TYPES)[number];
-
-const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
-
-export function isAllowedType(type: string): type is AllowedMimeType {
-  return (ALLOWED_TYPES as readonly string[]).includes(type);
-}
-
-export function isAllowedSize(size: number): boolean {
-  return size > 0 && size <= MAX_SIZE_BYTES;
-}
+let cachedClient: S3Client | undefined;
 
 function getR2Client() {
-  return new S3Client({
-    region: "auto",
-    endpoint: process.env.R2_ENDPOINT!,
-    credentials: {
-      accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-    },
-  });
+  if (!cachedClient) {
+    cachedClient = new S3Client({
+      region: "auto",
+      endpoint: process.env.R2_ENDPOINT!,
+      credentials: {
+        accessKeyId: process.env.R2_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+      },
+    });
+  }
+  return cachedClient;
 }
 
 function getBucket() {
