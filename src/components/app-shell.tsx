@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { UserButton } from "@clerk/nextjs";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
@@ -16,6 +17,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               Dashboard
             </Link>
           </nav>
+          <div className="ml-auto">
+            <UserButton />
+          </div>
         </div>
       </header>
       <main className="flex-1">{children}</main>

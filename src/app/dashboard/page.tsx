@@ -6,8 +6,12 @@ import {
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
+import { requireUser, getOrCreateDbUser } from "@/server/auth";
 
-export default function Dashboard() {
+export default async function Dashboard() {
+  const clerkUserId = await requireUser();
+  await getOrCreateDbUser(clerkUserId);
+
   return (
     <div className="container mx-auto p-6">
       <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
@@ -15,7 +19,7 @@ export default function Dashboard() {
         <CardHeader>
           <CardTitle>Your Reminders</CardTitle>
           <CardDescription>
-            This is a protected route. Authentication coming soon.
+            Manage your personal reminders below.
           </CardDescription>
         </CardHeader>
         <CardContent>
