@@ -5,6 +5,7 @@ import {
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { env } from "@/server/env";
 
 let cachedClient: S3Client | undefined;
 
@@ -12,10 +13,10 @@ function getR2Client() {
   if (!cachedClient) {
     cachedClient = new S3Client({
       region: "auto",
-      endpoint: process.env.R2_ENDPOINT!,
+      endpoint: env.R2_ENDPOINT,
       credentials: {
-        accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+        accessKeyId: env.R2_ACCESS_KEY_ID,
+        secretAccessKey: env.R2_SECRET_ACCESS_KEY,
       },
     });
   }
@@ -23,7 +24,7 @@ function getR2Client() {
 }
 
 function getBucket() {
-  return process.env.R2_BUCKET!;
+  return env.R2_BUCKET;
 }
 
 /**
