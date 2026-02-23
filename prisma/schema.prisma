@@ -26,6 +26,8 @@ model Item {
   updatedAt DateTime @updatedAt
 
   owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
 }
 
 model File {
@@ -39,4 +41,6 @@ model File {
   updatedAt    DateTime @updatedAt
 
   owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
 }
