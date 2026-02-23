@@ -26,6 +26,32 @@ Open [http://localhost:3000](http://localhost:3000) in your browser to see the a
 - `npm run build` — Build for production
 - `npm run start` — Start the production server
 - `npm run lint` — Run ESLint
+- `npm run db:generate` — Generate the Prisma client
+- `npm run db:migrate` — Run Prisma migrations in development
+- `npm run db:studio` — Open Prisma Studio
+
+## Database Setup
+
+This project uses [Prisma](https://www.prisma.io/) with PostgreSQL.
+
+1. Set the `DATABASE_URL` environment variable in a `.env` file at the project root:
+
+```env
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE"
+```
+
+2. Generate the Prisma client and run migrations:
+
+```bash
+npm run db:generate
+npm run db:migrate
+```
+
+3. (Optional) Open Prisma Studio to browse your data:
+
+```bash
+npm run db:studio
+```
 
 ## Deploying to Vercel
 
