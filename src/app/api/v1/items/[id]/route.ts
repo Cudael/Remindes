@@ -28,7 +28,7 @@ export async function PATCH(req: Request, { params }: Params) {
 
   const body = await req.json().catch(() => null);
   if (!body) {
-    return error("BAD_REQUEST", "Invalid JSON body");
+    return error("BAD_REQUEST", "Invalid JSON body", 400);
   }
 
   const result = itemUpdateSchema.safeParse(body);
