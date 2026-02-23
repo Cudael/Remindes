@@ -55,7 +55,40 @@ npm run db:studio
 
 ## Deploying to Vercel
 
-The easiest way to deploy this app is with [Vercel](https://vercel.com). Connect your GitHub repository in the Vercel dashboard and it will be deployed automatically on every push. See the [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 1. Import the project
+
+1. Push this repository to GitHub.
+2. Go to [vercel.com/new](https://vercel.com/new) and import the repository.
+
+### 2. Set environment variables
+
+In the Vercel project **Settings → Environment Variables**, add every variable listed below:
+
+| Variable                              | Where used    | Description                                                        |
+| ------------------------------------- | ------------- | ------------------------------------------------------------------ |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`   | Build + Runtime | Clerk publishable key (starts with `pk_`)                        |
+| `CLERK_SECRET_KEY`                    | Runtime       | Clerk secret key (starts with `sk_`)                               |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_URL`       | Build + Runtime | Sign-in page path, e.g. `/sign-in`                              |
+| `NEXT_PUBLIC_CLERK_SIGN_UP_URL`       | Build + Runtime | Sign-up page path, e.g. `/sign-up`                              |
+| `DATABASE_URL`                        | Runtime       | PostgreSQL connection string                                       |
+| `R2_ENDPOINT`                         | Runtime       | Cloudflare R2 S3-compatible endpoint                               |
+| `R2_ACCESS_KEY_ID`                    | Runtime       | R2 API token access key ID                                         |
+| `R2_SECRET_ACCESS_KEY`                | Runtime       | R2 API token secret access key                                     |
+| `R2_BUCKET`                           | Runtime       | Name of the R2 bucket                                              |
+
+> A `.env.example` file is included in the repo with placeholder values for every variable above.
+
+### 3. Deploy
+
+Vercel will run `npm run build` automatically (`prisma generate && next build`). After the first successful deploy, every push to the default branch triggers a new deployment.
+
+### 4. Run database migrations
+
+After setting `DATABASE_URL`, run migrations against your production database:
+
+```bash
+DATABASE_URL="<your-production-url>" npx prisma migrate deploy
+```
 
 ## Cloudflare R2 (File Storage)
 
