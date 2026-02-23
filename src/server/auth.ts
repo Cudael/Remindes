@@ -1,14 +1,15 @@
 import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 import { db } from "@/server/db";
 
 /**
  * Returns the current Clerk user id.
- * Throws (redirects to sign-in) if the user is not authenticated.
+ * Redirects to sign-in if the user is not authenticated.
  */
 export async function requireUser(): Promise<string> {
   const { userId } = await auth();
   if (!userId) {
-    throw new Error("Unauthorized");
+    redirect("/sign-in");
   }
   return userId;
 }
