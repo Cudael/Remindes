@@ -12,7 +12,9 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return (
+  const clerkKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+
+  return clerkKey ? (
     <ClerkProvider>
       <html lang="en">
         <body className="min-h-screen bg-background antialiased">
@@ -20,5 +22,11 @@ export default function RootLayout({
         </body>
       </html>
     </ClerkProvider>
+  ) : (
+    <html lang="en">
+      <body className="min-h-screen bg-background antialiased">
+        {children}
+      </body>
+    </html>
   );
 }
