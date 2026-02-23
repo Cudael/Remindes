@@ -16,6 +16,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             >
               Dashboard
             </Link>
+            <Link
+              href="/dashboard/items"
+              className="text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Items
+            </Link>
           </nav>
           <div className="ml-auto">
             <UserButton />
