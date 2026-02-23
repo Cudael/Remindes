@@ -62,21 +62,27 @@ npm run db:studio
 
 ### 2. Set environment variables
 
-In the Vercel project **Settings → Environment Variables**, add every variable listed below:
+In the Vercel project **Settings → Environment Variables**, add every variable listed below.
 
-| Variable                              | Where used    | Description                                                        |
-| ------------------------------------- | ------------- | ------------------------------------------------------------------ |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`   | Build + Runtime | Clerk publishable key (starts with `pk_`)                        |
-| `CLERK_SECRET_KEY`                    | Runtime       | Clerk secret key (starts with `sk_`)                               |
-| `NEXT_PUBLIC_CLERK_SIGN_IN_URL`       | Build + Runtime | Sign-in page path, e.g. `/sign-in`                              |
-| `NEXT_PUBLIC_CLERK_SIGN_UP_URL`       | Build + Runtime | Sign-up page path, e.g. `/sign-up`                              |
-| `DATABASE_URL`                        | Runtime       | PostgreSQL connection string                                       |
-| `R2_ENDPOINT`                         | Runtime       | Cloudflare R2 S3-compatible endpoint                               |
-| `R2_ACCESS_KEY_ID`                    | Runtime       | R2 API token access key ID                                         |
-| `R2_SECRET_ACCESS_KEY`                | Runtime       | R2 API token secret access key                                     |
-| `R2_BUCKET`                           | Runtime       | Name of the R2 bucket                                              |
+#### Exact Vercel env vars
 
-> A `.env.example` file is included in the repo with placeholder values for every variable above.
+Copy each variable name exactly as shown. All are **required** — the app validates them on startup and will refuse to boot if any are missing.
+
+| Variable                              | Environments        | Example / format                                      |
+| ------------------------------------- | ------------------- | ----------------------------------------------------- |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`   | Production, Preview | `pk_live_…` or `pk_test_…`                            |
+| `CLERK_SECRET_KEY`                    | Production, Preview | `sk_live_…` or `sk_test_…`                            |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_URL`       | Production, Preview | `/sign-in`                                            |
+| `NEXT_PUBLIC_CLERK_SIGN_UP_URL`       | Production, Preview | `/sign-up`                                            |
+| `DATABASE_URL`                        | Production, Preview | `postgresql://user:password@host:5432/remindes`       |
+| `R2_ENDPOINT`                         | Production, Preview | `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`       |
+| `R2_ACCESS_KEY_ID`                    | Production, Preview | your R2 API-token access key ID                       |
+| `R2_SECRET_ACCESS_KEY`                | Production, Preview | your R2 API-token secret access key                   |
+| `R2_BUCKET`                           | Production, Preview | `remindes` (your bucket name)                         |
+
+> **Tip:** A `.env.example` file is included in the repo with placeholder values for every variable above — use it as a checklist.
+>
+> **Startup validation:** On server boot the app checks that every variable above is set. If any are missing it will throw an error listing exactly which ones are absent, so preview deployments fail fast instead of with a cryptic runtime error.
 
 ### 3. Deploy
 
