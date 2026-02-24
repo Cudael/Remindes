@@ -14,6 +14,7 @@ import { Plus, LayoutGrid, List, AlertTriangle, Package } from "lucide-react";
 import { ItemCard } from "@/components/items/ItemCard";
 import { FilterBar } from "@/components/items/FilterBar";
 import { StatsCard } from "@/components/items/StatsCard";
+import { EmptyState } from "@/components/items/EmptyState";
 import { getItemStatus, formatCurrency } from "@/lib/item-utils";
 
 interface ItemType {
@@ -212,21 +213,11 @@ export default function ItemsPage() {
         </CardHeader>
         <CardContent>
           {items.length === 0 && !isPending ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="text-5xl mb-4">📂</div>
-              <h3 className="font-semibold text-lg">No items yet</h3>
-              <p className="text-muted-foreground text-sm mt-1 mb-4">
-                {selectedCategory || selectedStatus || searchQuery
-                  ? "No items match your current filters."
-                  : "Start by adding your first document or subscription."}
-              </p>
-              {!selectedCategory && !selectedStatus && !searchQuery && (
-                <Button onClick={() => router.push("/dashboard/items/new")}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Your First Item
-                </Button>
-              )}
-            </div>
+            <EmptyState
+              searchQuery={searchQuery}
+              selectedCategory={selectedCategory}
+              selectedStatus={selectedStatus}
+            />
           ) : isGridView ? (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {items.map((item) => (
