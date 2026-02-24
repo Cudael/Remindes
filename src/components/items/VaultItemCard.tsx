@@ -85,11 +85,12 @@ export function VaultItemCard({ item, onDelete }: VaultItemCardProps) {
   return (
     <div
       className="group relative rounded-[2rem] border border-white/5 bg-slate-900/60 backdrop-blur-xl overflow-hidden cursor-pointer
-        transition-all duration-200 hover:border-teal-500/30 hover:shadow-lg hover:shadow-teal-500/10"
+        transition-all duration-200 hover:border-teal-500/30 hover:shadow-lg hover:shadow-teal-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/50 focus-visible:border-teal-500/30"
       onClick={() => router.push(`/dashboard/items/${item.id}`)}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => e.key === "Enter" && router.push(`/dashboard/items/${item.id}`)}
+      aria-label={`View ${item.name}`}
     >
       {/* Top-edge glow line on hover */}
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-teal-500/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />

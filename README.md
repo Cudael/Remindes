@@ -120,3 +120,30 @@ Add the following environment variables to your `.env` (or hosting provider):
 
 **Allowed file types:** `application/pdf`, `image/jpeg`, `image/png`, `image/webp`
 **Max file size:** 10 MB
+
+## API Overview
+
+All API responses use a standard envelope: `{ data: T }` for success and `{ error: { code, message, details? } }` for errors. Request bodies are validated with [Zod](https://zod.dev).
+
+### Core Endpoints (auth required)
+
+| Method | Endpoint                                 | Description                      |
+| ------ | ---------------------------------------- | -------------------------------- |
+| GET    | `/api/v1/me`                             | Current user info                |
+| GET    | `/api/v1/health`                         | Health check                     |
+| GET    | `/api/v1/items`                          | List items (filterable)          |
+| POST   | `/api/v1/items`                          | Create an item                   |
+| GET    | `/api/v1/items/:id`                      | Get item details                 |
+| PATCH  | `/api/v1/items/:id`                      | Update an item                   |
+| DELETE | `/api/v1/items/:id`                      | Delete an item                   |
+| GET    | `/api/v1/items/stats`                    | Aggregated vault statistics      |
+| GET    | `/api/v1/items/:id/attachments`          | List item attachments            |
+| POST   | `/api/v1/items/:id/attachments`          | Attach a file to an item         |
+| DELETE | `/api/v1/items/:id/attachments/:attachId`| Remove an attachment             |
+| GET    | `/api/v1/item-types`                     | List item types                  |
+| POST   | `/api/v1/item-types`                     | Create an item type              |
+| GET    | `/api/v1/item-types/:id`                 | Get item type details            |
+| GET    | `/api/v1/item-types/categories`          | List unique categories           |
+| GET    | `/api/v1/notifications`                  | List notifications               |
+| POST   | `/api/v1/notifications`                  | Mark notification(s) as read     |
+| DELETE | `/api/v1/notifications`                  | Delete read notifications        |

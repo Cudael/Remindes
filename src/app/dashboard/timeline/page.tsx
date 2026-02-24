@@ -102,7 +102,11 @@ function DayModal({ date, items, onClose, onNavigate }: DayModalProps) {
   if (typeof document === "undefined") return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label={label}
+    >
       <div
         className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
         onClick={onClose}

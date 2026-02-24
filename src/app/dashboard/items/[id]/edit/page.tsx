@@ -204,7 +204,6 @@ export default function EditItemPage() {
   const fieldsConfig = item.itemType?.fieldsConfig ?? [];
   const isDocument = item.itemClass === "document";
   const isSubscription = item.itemClass === "subscription";
-  const isSubscriptionIcon = isSubscription;
 
   return (
     <div className="relative min-h-screen bg-slate-950 overflow-hidden">
@@ -287,12 +286,12 @@ export default function EditItemPage() {
             <div className="flex items-center gap-4 p-8 pb-6 border-b border-white/5">
               <div
                 className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${
-                  isSubscriptionIcon
+                  isSubscription
                     ? "bg-indigo-500/20 text-indigo-300"
                     : "bg-teal-500/20 text-teal-300"
                 }`}
               >
-                {isSubscriptionIcon ? (
+                {isSubscription ? (
                   <RefreshCw className="h-6 w-6" />
                 ) : (
                   <FileText className="h-6 w-6" />

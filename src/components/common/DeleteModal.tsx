@@ -146,6 +146,7 @@ export function DeleteModal({
                 value={confirmText}
                 onChange={(e) => setConfirmText(e.target.value)}
                 placeholder="DELETE"
+                aria-label="Type DELETE to confirm"
                 disabled={loading}
                 className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-rose-100 placeholder:text-rose-300/30 focus:border-rose-400/50 focus:outline-none focus:ring-1 focus:ring-rose-400/30 disabled:opacity-50"
               />

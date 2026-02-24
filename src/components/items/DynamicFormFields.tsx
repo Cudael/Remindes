@@ -40,6 +40,7 @@ export function DynamicFormFields({
             {field.type === "select" && field.options ? (
               <select
                 id={field.key}
+                aria-label={field.label}
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 value={String(value)}
                 onChange={(e) => onChange(field.key, e.target.value)}

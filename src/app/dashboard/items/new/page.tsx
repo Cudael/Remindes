@@ -66,6 +66,9 @@ export default function NewItemPage() {
         setItemTypes(types);
         const cats = [...new Set(types.map((t) => t.category))].sort();
         setCategories(cats);
+      })
+      .catch(() => {
+        setError("Failed to load item types");
       });
   }, []);
 

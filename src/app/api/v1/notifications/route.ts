@@ -1,7 +1,13 @@
+import { z } from "zod/v4";
 import { auth } from "@clerk/nextjs/server";
 import { error, success } from "@/lib/api-response";
 import { getOrCreateDbUser } from "@/server/auth";
 import { db } from "@/server/db";
+
+const notificationActionSchema = z.union([
+  z.object({ action: z.literal("markAllRead") }),
+  z.object({ id: z.string().min(1, "Notification ID is required") }),
+]);
 
 export async function GET() {
   const { userId } = await auth();
@@ -35,8 +41,15 @@ export async function POST(req: Request) {
     return error("BAD_REQUEST", "Invalid JSON body", 400);
   }
 
-  // Mark notifications as read
-  if (body.action === "markAllRead") {
+  const result = notificationActionSchema.safeParse(body);
+  if (!result.success) {
+    return error("VALIDATION_ERROR", "Invalid input", 400, result.error.issues);
+  }
+
+  const data = result.data;
+
+  // Mark all notifications as read
+  if ("action" in data && data.action === "markAllRead") {
     await db.notification.updateMany({
       where: { userId: user.id, isRead: false },
       data: { isRead: true, readAt: new Date() },
@@ -44,15 +57,16 @@ export async function POST(req: Request) {
     return success({ updated: true });
   }
 
-  if (body.id) {
+  // Mark a single notification as read
+  if ("id" in data) {
     const notification = await db.notification.findUnique({
-      where: { id: body.id },
+      where: { id: data.id },
     });
     if (!notification || notification.userId !== user.id) {
       return error("NOT_FOUND", "Notification not found", 404);
     }
     const updated = await db.notification.update({
-      where: { id: body.id },
+      where: { id: data.id },
       data: { isRead: true, readAt: new Date() },
     });
     return success(updated);
