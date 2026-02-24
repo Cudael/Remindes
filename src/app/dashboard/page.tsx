@@ -9,8 +9,8 @@ import {
 } from "@/components/ui/card";
 import { requireUser, getOrCreateDbUser } from "@/server/auth";
 import { db } from "@/server/db";
-import { getItemStatus, getCategoryIcon, formatCurrency } from "@/lib/item-utils";
-import { Plus, FileText, RefreshCw, AlertTriangle } from "lucide-react";
+import { getItemStatus, getCategoryIcon, formatCurrency, getCategoryStats } from "@/lib/item-utils";
+import { Plus, FileText, RefreshCw, AlertTriangle, Layers, XCircle, DollarSign } from "lucide-react";
 
 export default async function Dashboard() {
   const clerkUserId = await requireUser();
@@ -66,6 +66,8 @@ export default async function Dashboard() {
     .slice(0, 5);
 
   const recentItems = items.slice(0, 5);
+  const categoryStats = getCategoryStats(items);
+  const totalItems = items.length;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -82,36 +84,71 @@ export default async function Dashboard() {
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Card>
-          <CardContent className="pt-4">
-            <p className="text-sm text-muted-foreground">Total Items</p>
-            <p className="text-2xl font-bold mt-1">{items.length}</p>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="overflow-hidden">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Items
+            </CardTitle>
+            <div className="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+              <Layers className="h-4 w-4 text-blue-500" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalItems}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Documents & subscriptions
+            </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <p className="text-sm text-muted-foreground">Expiring Soon</p>
-            <p className={`text-2xl font-bold mt-1 ${expiringSoon > 0 ? "text-yellow-600" : ""}`}>
+        <Card className="overflow-hidden">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Expiring Soon
+            </CardTitle>
+            <div className="h-8 w-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${expiringSoon > 0 ? "text-amber-600" : ""}`}>
               {expiringSoon}
-            </p>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Within 30 days</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <p className="text-sm text-muted-foreground">Expired</p>
-            <p className={`text-2xl font-bold mt-1 ${expired > 0 ? "text-red-600" : ""}`}>
+        <Card className="overflow-hidden">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Expired
+            </CardTitle>
+            <div className="h-8 w-8 rounded-lg bg-red-500/10 flex items-center justify-center">
+              <XCircle className="h-4 w-4 text-red-500" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${expired > 0 ? "text-red-600" : ""}`}>
               {expired}
-            </p>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Need attention</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <p className="text-sm text-muted-foreground">Monthly Cost</p>
-            <p className="text-2xl font-bold mt-1">
+        <Card className="overflow-hidden">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Monthly Cost
+            </CardTitle>
+            <div className="h-8 w-8 rounded-lg bg-green-500/10 flex items-center justify-center">
+              <DollarSign className="h-4 w-4 text-green-500" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
               {formatCurrency(Math.round(monthlySubscriptionCost * 100) / 100)}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {activeSubscriptions} active subscription{activeSubscriptions !== 1 ? "s" : ""}
             </p>
-            <p className="text-xs text-muted-foreground">{activeSubscriptions} subscription{activeSubscriptions !== 1 ? "s" : ""}</p>
           </CardContent>
         </Card>
       </div>
@@ -239,6 +276,36 @@ export default async function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Category breakdown */}
+      {categoryStats.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Items by Category</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {categoryStats.map((cat) => (
+                <div key={cat.category} className="space-y-1">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-2">
+                      <span>{getCategoryIcon(cat.category)}</span>
+                      {cat.category}
+                    </span>
+                    <span className="font-medium">{cat.count}</span>
+                  </div>
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary rounded-full transition-all"
+                      style={{ width: `${(cat.count / totalItems) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Quick actions */}
       <Card>

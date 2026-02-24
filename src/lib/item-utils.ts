@@ -55,3 +55,18 @@ export function formatCurrency(amount: number): string {
     currency: "USD",
   }).format(amount);
 }
+
+export function getCategoryStats(
+  items: Array<{ category?: string | null }>
+): Array<{ category: string; count: number }> {
+  const stats = new Map<string, number>();
+
+  items.forEach((item) => {
+    const cat = item.category || "Other";
+    stats.set(cat, (stats.get(cat) || 0) + 1);
+  });
+
+  return Array.from(stats.entries())
+    .map(([category, count]) => ({ category, count }))
+    .sort((a, b) => b.count - a.count);
+}
