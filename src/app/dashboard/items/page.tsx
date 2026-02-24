@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, Search, SlidersHorizontal, AlertTriangle, Loader2, X } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
@@ -59,6 +59,20 @@ function statFilterToApiStatus(filter: StatFilterValue): string {
   }
 }
 
+const VALID_STAT_FILTERS: ReadonlySet<StatFilterValue> = new Set([
+  "all",
+  "soon",
+  "week",
+  "expired",
+  "documents",
+  "subscriptions",
+  "missingDocs",
+]);
+
+function isValidStatFilter(v: string | null): v is StatFilterValue {
+  return v !== null && VALID_STAT_FILTERS.has(v as StatFilterValue);
+}
+
 async function fetchItems(params: Record<string, string> = {}): Promise<Item[]> {
   const qs = new URLSearchParams(params).toString();
   const res = await fetch(`/api/v1/items${qs ? `?${qs}` : ""}`);
@@ -103,11 +117,14 @@ export default function ItemsPage() {
   // Delete modal state
   const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const initializedFromUrl = useRef(false);
 
-  // Read URL param on mount
+  // Read URL params on first mount only
   useEffect(() => {
-    const filterParam = searchParams.get("filter") as StatFilterValue | null;
-    if (filterParam) {
+    if (initializedFromUrl.current) return;
+    initializedFromUrl.current = true;
+    const filterParam = searchParams.get("filter");
+    if (isValidStatFilter(filterParam)) {
       setActiveStatFilter(filterParam);
       setShowFilters(true);
     }
@@ -116,8 +133,7 @@ export default function ItemsPage() {
       setActiveCategory(categoryParam);
       setShowFilters(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [searchParams]);
 
   // Sync URL query params
   useEffect(() => {

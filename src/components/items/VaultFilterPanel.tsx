@@ -27,7 +27,7 @@ interface VaultFilterPanelProps {
   onClearFilters: () => void;
 }
 
-const STATUS_FILTERS: { label: string; value: StatFilterValue }[] = [
+const STATUS_FILTERS = [
   { label: "All Items", value: "all" },
   { label: "Expiring Soon", value: "soon" },
   { label: "This Week", value: "week" },
@@ -35,7 +35,7 @@ const STATUS_FILTERS: { label: string; value: StatFilterValue }[] = [
   { label: "Documents", value: "documents" },
   { label: "Subscriptions", value: "subscriptions" },
   { label: "Missing Docs", value: "missingDocs" },
-];
+] as const satisfies { label: string; value: StatFilterValue }[];
 
 export function VaultFilterPanel({
   activeCategory,
