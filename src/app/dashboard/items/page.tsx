@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,327 +10,318 @@ import {
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Paperclip, Trash2, X } from "lucide-react";
+import { Plus, LayoutGrid, List, AlertTriangle, Package } from "lucide-react";
+import { ItemCard } from "@/components/items/ItemCard";
+import { FilterBar } from "@/components/items/FilterBar";
+import { StatsCard } from "@/components/items/StatsCard";
+import { getItemStatus, formatCurrency } from "@/lib/item-utils";
 
-interface FileRecord {
+interface ItemType {
   id: string;
-  originalName: string;
-  mimeType: string;
-  size: number;
-}
-
-interface Attachment {
-  id: string;
-  fileId: string;
-  file: FileRecord;
-  createdAt: string;
+  name: string;
+  category: string;
+  icon?: string | null;
 }
 
 interface Item {
   id: string;
   name: string;
-  type: string | null;
+  type?: string | null;
+  category?: string | null;
+  itemClass?: string | null;
+  itemTypeId?: string | null;
+  itemType?: ItemType | null;
+  expirationDate?: string | null;
+  renewalDate?: string | null;
+  documentNumber?: string | null;
+  billingCycle?: string | null;
+  price?: number | null;
+  notes?: string | null;
   createdAt: string;
 }
 
-async function getItems(): Promise<{ data: Item[]; error?: string }> {
-  const res = await fetch("/api/v1/items");
-  if (!res.ok) return { data: [], error: "Failed to load items" };
-  const json = await res.json();
-  return { data: json.data };
+interface Stats {
+  total: number;
+  byCategory: Record<string, number>;
+  byClass: Record<string, number>;
+  expiringSoon: number;
+  expired: number;
+  activeSubscriptions: number;
+  monthlySubscriptionCost: number;
 }
 
-async function getFiles(): Promise<FileRecord[]> {
-  const res = await fetch("/api/v1/files");
+async function fetchItems(params: Record<string, string> = {}): Promise<Item[]> {
+  const qs = new URLSearchParams(params).toString();
+  const res = await fetch(`/api/v1/items${qs ? `?${qs}` : ""}`);
   if (!res.ok) return [];
   const json = await res.json();
   return json.data ?? [];
 }
 
-async function getAttachments(itemId: string): Promise<Attachment[]> {
-  const res = await fetch(`/api/v1/items/${itemId}/attachments`);
+async function fetchStats(): Promise<Stats | null> {
+  const res = await fetch("/api/v1/items/stats");
+  if (!res.ok) return null;
+  const json = await res.json();
+  return json.data ?? null;
+}
+
+async function fetchCategories(): Promise<string[]> {
+  const res = await fetch("/api/v1/item-types/categories");
   if (!res.ok) return [];
   const json = await res.json();
   return json.data ?? [];
 }
 
 export default function ItemsPage() {
+  const router = useRouter();
   const [items, setItems] = useState<Item[]>([]);
-  const [files, setFiles] = useState<FileRecord[]>([]);
-  const [name, setName] = useState("");
-  const [type, setType] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [categories, setCategories] = useState<string[]>([]);
   const [isPending, startTransition] = useTransition();
+  const [isGridView, setIsGridView] = useState(true);
 
-  // Track attachments per item and which item is expanded
-  const [attachments, setAttachments] = useState<Record<string, Attachment[]>>({});
-  const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
+  // Filters
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  useEffect(() => {
-    let cancelled = false;
-    getItems().then((result) => {
-      if (!cancelled) {
-        setItems(result.data);
-        if (result.error) setError(result.error);
-      }
-    });
-    getFiles().then((data) => {
-      if (!cancelled) setFiles(data);
-    });
-    return () => { cancelled = true; };
-  }, []);
-
-  const loadAttachments = useCallback(async (itemId: string) => {
-    const data = await getAttachments(itemId);
-    setAttachments((prev) => ({ ...prev, [itemId]: data }));
-  }, []);
-
-  function toggleAttachments(itemId: string) {
-    if (expandedItemId === itemId) {
-      setExpandedItemId(null);
-    } else {
-      setExpandedItemId(itemId);
-      loadAttachments(itemId);
-    }
-  }
-
-  function handleCreate(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-
-    if (!name.trim()) {
-      setError("Name is required");
-      return;
-    }
+  const loadData = useCallback(() => {
+    const params: Record<string, string> = {};
+    if (selectedCategory) params.category = selectedCategory;
+    if (selectedStatus) params.status = selectedStatus;
+    if (searchQuery) params.search = searchQuery;
 
     startTransition(async () => {
-      const res = await fetch("/api/v1/items", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), type: type.trim() || undefined }),
-      });
-
-      if (!res.ok) {
-        const json = await res.json();
-        setError(json.error?.message ?? "Failed to create item");
-        return;
-      }
-
-      setName("");
-      setType("");
-      const result = await getItems();
-      setItems(result.data);
+      const [itemsData, statsData, categoriesData] = await Promise.all([
+        fetchItems(params),
+        fetchStats(),
+        fetchCategories(),
+      ]);
+      setItems(itemsData);
+      setStats(statsData);
+      setCategories(categoriesData);
     });
-  }
+  }, [selectedCategory, selectedStatus, searchQuery]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   function handleDelete(id: string) {
     startTransition(async () => {
       const res = await fetch(`/api/v1/items/${id}`, { method: "DELETE" });
-      if (!res.ok) {
-        setError("Failed to delete item");
-        return;
-      }
-      const result = await getItems();
-      setItems(result.data);
+      if (res.ok) loadData();
     });
   }
 
-  function handleAttachFile(itemId: string, fileId: string) {
-    startTransition(async () => {
-      const res = await fetch(`/api/v1/items/${itemId}/attachments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileId }),
-      });
-
-      if (!res.ok) {
-        const json = await res.json();
-        setError(json.error?.message ?? "Failed to attach file");
-        return;
-      }
-
-      await loadAttachments(itemId);
-    });
-  }
-
-  function handleRemoveAttachment(itemId: string, attachmentId: string) {
-    startTransition(async () => {
-      const res = await fetch(`/api/v1/items/${itemId}/attachments/${attachmentId}`, {
-        method: "DELETE",
-      });
-
-      if (!res.ok) {
-        setError("Failed to remove attachment");
-        return;
-      }
-
-      await loadAttachments(itemId);
-    });
-  }
+  const expiredCount = items.filter((i) => getItemStatus(i).status === "expired").length;
+  const expiringCount = items.filter((i) => getItemStatus(i).status === "expiring").length;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <h1 className="text-3xl font-bold">Items</h1>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-3xl font-bold">Items</h1>
+          <p className="text-muted-foreground mt-1">
+            Manage your documents and subscriptions
+          </p>
+        </div>
+        <Button onClick={() => router.push("/dashboard/items/new")}>
+          <Plus className="mr-2 h-4 w-4" />
+          Add Item
+        </Button>
+      </div>
 
-      {/* Create Item Form */}
+      {/* Stats cards */}
+      {stats && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatsCard
+            title="Total Items"
+            value={stats.total}
+            icon={<Package className="h-4 w-4" />}
+          />
+          <StatsCard
+            title="Expiring Soon"
+            value={stats.expiringSoon}
+            icon={<AlertTriangle className="h-4 w-4" />}
+            colorClass={stats.expiringSoon > 0 ? "text-yellow-600" : "text-foreground"}
+          />
+          <StatsCard
+            title="Expired"
+            value={stats.expired}
+            icon={<AlertTriangle className="h-4 w-4" />}
+            colorClass={stats.expired > 0 ? "text-red-600" : "text-foreground"}
+          />
+          <StatsCard
+            title="Monthly Cost"
+            value={formatCurrency(stats.monthlySubscriptionCost)}
+            icon={<span className="text-sm">💳</span>}
+            description={`${stats.activeSubscriptions} active subscription${stats.activeSubscriptions !== 1 ? "s" : ""}`}
+          />
+        </div>
+      )}
+
+      {/* Filters */}
       <Card>
-        <CardHeader>
-          <CardTitle>Create Item</CardTitle>
-          <CardDescription>Add a new item to your collection.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleCreate} className="flex flex-col gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                placeholder="Item name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="type">Type (optional)</Label>
-              <Input
-                id="type"
-                placeholder="e.g. reminder, task, note"
-                value={type}
-                onChange={(e) => setType(e.target.value)}
-              />
-            </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" disabled={isPending} className="w-fit">
-              {isPending ? "Creating…" : "Create Item"}
-            </Button>
-          </form>
+        <CardContent className="pt-4">
+          <FilterBar
+            categories={categories}
+            selectedCategory={selectedCategory}
+            onCategoryChange={setSelectedCategory}
+            selectedStatus={selectedStatus}
+            onStatusChange={setSelectedStatus}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+          />
         </CardContent>
       </Card>
 
-      {/* Items List */}
+      {/* Items list / grid */}
       <Card>
         <CardHeader>
-          <CardTitle>Your Items</CardTitle>
-          <CardDescription>
-            {items.length === 0
-              ? "No items yet. Create one above."
-              : `${items.length} item${items.length === 1 ? "" : "s"}`}
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Your Items</CardTitle>
+              <CardDescription>
+                {isPending
+                  ? "Loading…"
+                  : items.length === 0
+                    ? "No items found. Create one above."
+                    : `${items.length} item${items.length !== 1 ? "s" : ""}`}
+              </CardDescription>
+            </div>
+            <div className="flex gap-1">
+              <Button
+                variant={isGridView ? "secondary" : "ghost"}
+                size="icon"
+                onClick={() => setIsGridView(true)}
+                aria-label="Grid view"
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={!isGridView ? "secondary" : "ghost"}
+                size="icon"
+                onClick={() => setIsGridView(false)}
+                aria-label="List view"
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          {items.length > 0 && (
+          {items.length === 0 && !isPending ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="text-5xl mb-4">📂</div>
+              <h3 className="font-semibold text-lg">No items yet</h3>
+              <p className="text-muted-foreground text-sm mt-1 mb-4">
+                {selectedCategory || selectedStatus || searchQuery
+                  ? "No items match your current filters."
+                  : "Start by adding your first document or subscription."}
+              </p>
+              {!selectedCategory && !selectedStatus && !searchQuery && (
+                <Button onClick={() => router.push("/dashboard/items/new")}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Your First Item
+                </Button>
+              )}
+            </div>
+          ) : isGridView ? (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {items.map((item) => (
+                <ItemCard
+                  key={item.id}
+                  item={item}
+                  onClick={() => router.push(`/dashboard/items/${item.id}`)}
+                  onEdit={() => router.push(`/dashboard/items/${item.id}/edit`)}
+                  onDelete={() => handleDelete(item.id)}
+                />
+              ))}
+            </div>
+          ) : (
             <ul className="divide-y divide-border">
               {items.map((item) => {
-                const isExpanded = expandedItemId === item.id;
-                const itemAttachments = attachments[item.id] ?? [];
-                const attachedFileIds = new Set(itemAttachments.map((a) => a.fileId));
-                const availableFiles = files.filter((f) => !attachedFileIds.has(f.id));
-
+                const { status, daysLeft } = getItemStatus(item);
+                const statusColors = {
+                  active: "text-green-600",
+                  expiring: "text-yellow-600",
+                  expired: "text-red-600",
+                }[status];
                 return (
-                  <li key={item.id} className="py-3 first:pt-0 last:pb-0">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">{item.name}</p>
-                        {item.type && (
-                          <p className="text-sm text-muted-foreground">{item.type}</p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => toggleAttachments(item.id)}
-                          disabled={isPending}
-                          aria-label={`Attachments for ${item.name}`}
-                        >
-                          <Paperclip className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          onClick={() => handleDelete(item.id)}
-                          disabled={isPending}
-                          aria-label={`Delete ${item.name}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                  <li
+                    key={item.id}
+                    className="py-3 flex items-center justify-between gap-4 cursor-pointer hover:bg-muted/50 px-2 rounded transition-colors"
+                    onClick={() => router.push(`/dashboard/items/${item.id}`)}
+                  >
+                    <div>
+                      <p className="font-medium">{item.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {item.category ?? "Other"} · {item.itemType?.name ?? item.type ?? "—"}
+                      </p>
                     </div>
-
-                    {isExpanded && (
-                      <div className="mt-3 ml-4 space-y-3">
-                        {/* Existing attachments */}
-                        {itemAttachments.length > 0 && (
-                          <div className="space-y-1">
-                            <p className="text-sm font-medium text-muted-foreground">
-                              Attached files
-                            </p>
-                            <ul className="space-y-1">
-                              {itemAttachments.map((att) => (
-                                <li
-                                  key={att.id}
-                                  className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
-                                >
-                                  <span className="truncate">{att.file.originalName}</span>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6"
-                                    onClick={() =>
-                                      handleRemoveAttachment(item.id, att.id)
-                                    }
-                                    disabled={isPending}
-                                    aria-label={`Remove ${att.file.originalName}`}
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </Button>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-
-                        {/* Add attachment */}
-                        {availableFiles.length > 0 ? (
-                          <div className="space-y-1">
-                            <p className="text-sm font-medium text-muted-foreground">
-                              Add a file
-                            </p>
-                            <ul className="space-y-1">
-                              {availableFiles.map((file) => (
-                                <li key={file.id}>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="w-full justify-start"
-                                    onClick={() => handleAttachFile(item.id, file.id)}
-                                    disabled={isPending}
-                                  >
-                                    <Paperclip className="mr-2 h-3 w-3" />
-                                    {file.originalName}
-                                  </Button>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">
-                            {itemAttachments.length > 0
-                              ? "All your files are attached."
-                              : "No files available. Upload files first."}
-                          </p>
-                        )}
-                      </div>
-                    )}
+                    <div className="flex items-center gap-3 shrink-0">
+                      {daysLeft != null && (
+                        <span className={`text-sm font-medium ${statusColors}`}>
+                          {daysLeft < 0
+                            ? `${Math.abs(daysLeft)}d ago`
+                            : daysLeft === 0
+                              ? "Today"
+                              : `${daysLeft}d`}
+                        </span>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/dashboard/items/${item.id}/edit`);
+                        }}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(item.id);
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </div>
                   </li>
                 );
               })}
             </ul>
+          )}
+
+          {/* Warning banners */}
+          {(expiredCount > 0 || expiringCount > 0) && !isPending && (
+            <div className="mt-4 space-y-2">
+              {expiredCount > 0 && (
+                <div className="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
+                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                  <span>
+                    {expiredCount} item{expiredCount !== 1 ? "s have" : " has"} expired and may need renewal.
+                  </span>
+                </div>
+              )}
+              {expiringCount > 0 && (
+                <div className="flex items-center gap-2 rounded-lg bg-yellow-50 border border-yellow-200 px-3 py-2 text-sm text-yellow-700">
+                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                  <span>
+                    {expiringCount} item{expiringCount !== 1 ? "s are" : " is"} expiring within 30 days.
+                  </span>
+                </div>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>
     </div>
   );
 }
+
