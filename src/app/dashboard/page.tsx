@@ -59,8 +59,8 @@ export default async function Dashboard() {
       return d >= now && d <= thirtyDaysFromNow;
     })
     .sort((a, b) => {
-      const da = (a.expirationDate ?? a.renewalDate)!;
-      const db2 = (b.expirationDate ?? b.renewalDate)!;
+      const da = a.expirationDate ?? a.renewalDate ?? now;
+      const db2 = b.expirationDate ?? b.renewalDate ?? now;
       return new Date(da).getTime() - new Date(db2).getTime();
     })
     .slice(0, 5);
