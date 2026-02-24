@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id          String   @id @default(cuid())
+  clerkUserId String   @unique
+  email       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items Item[]
+  files File[]
+}
+
+model Item {
+  id        String   @id @default(cuid())
+  ownerId   String
+  name      String
+  type      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner       User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  attachments ItemAttachment[]
+
+  @@index([ownerId])
+}
+
+model File {
+  id           String   @id @default(cuid())
+  ownerId      String
+  storageKey   String   @unique
+  originalName String
+  mimeType     String
+  size         Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  owner       User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  attachments ItemAttachment[]
+
+  @@index([ownerId])
+}
+
+model ItemAttachment {
+  id        String   @id @default(cuid())
+  itemId    String
+  fileId    String
+  createdAt DateTime @default(now())
+
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  file File @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, fileId])
+  @@index([itemId])
+  @@index([fileId])
+}
