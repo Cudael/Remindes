@@ -68,7 +68,10 @@ export default function ItemDetailPage() {
         setItem(json.data ?? null);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => {
+        setError("Failed to load item");
+        setLoading(false);
+      });
   }, [id]);
 
   function handleDelete() {
@@ -110,7 +113,7 @@ export default function ItemDetailPage() {
   const category = item.category ?? item.itemType?.category ?? "Other";
   const icon = item.itemType?.icon ?? undefined;
   const fieldsConfig = item.itemType?.fieldsConfig ?? [];
-  const dynamicFields = item.dynamicFields as Record<string, unknown> | null ?? {};
+  const dynamicFields = (item.dynamicFields as Record<string, unknown> | null) ?? {};
 
   function formatDate(d: string | null | undefined) {
     if (!d) return null;
