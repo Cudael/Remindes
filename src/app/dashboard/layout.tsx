@@ -1,11 +1,7 @@
-import AppShell from "@/components/app-shell";
+import { DashboardLayout } from "@/components/layout/dashboard-layout";
 
 export const dynamic = "force-dynamic";
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return <AppShell>{children}</AppShell>;
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return <DashboardLayout>{children}</DashboardLayout>;
 }
