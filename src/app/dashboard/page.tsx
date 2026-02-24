@@ -133,26 +133,26 @@ export default async function Dashboard() {
 
       {/* Ambient background grid */}
       <div
-        className="fixed inset-0 z-0 pointer-events-none"
+        className="fixed inset-0 z-0 pointer-events-none opacity-60"
         style={{
           backgroundImage:
-            "linear-gradient(to right, rgba(148,163,184,0.03) 1px, transparent 1px), linear-gradient(to bottom, rgba(148,163,184,0.03) 1px, transparent 1px)",
+            "linear-gradient(to right, rgba(148,163,184,0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(148,163,184,0.05) 1px, transparent 1px)",
           backgroundSize: "48px 48px",
         }}
         aria-hidden="true"
       />
 
-      <div className="relative z-10 space-y-6 pb-12">
-        {/* Greeting */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="relative z-10 space-y-8 pb-12 px-4 sm:px-6 lg:px-8 mt-6">
+        {/* Greeting & CTA */}
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
           <div>
-            <h1 className="text-2xl font-bold text-white">
+            <h1 className="text-3xl font-extrabold tracking-tight text-white">
               {greeting},{" "}
-              <span className="bg-gradient-to-r from-teal-400 to-cyan-400 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-teal-400 to-cyan-400 bg-clip-text text-transparent drop-shadow-sm">
                 {firstName ?? userName.split(" ")[0]}.
               </span>
             </h1>
-            <p className="mt-1 text-sm text-slate-400">
+            <p className="mt-2 text-base text-slate-400">
               {totalItems === 0
                 ? "Your vault is empty. Add your first item to get started."
                 : `You have ${totalItems} item${totalItems !== 1 ? "s" : ""} in your vault.`}
@@ -160,16 +160,16 @@ export default async function Dashboard() {
           </div>
           <Link
             href="/dashboard/items/new"
-            className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-white/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+            className="group relative inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-slate-900 transition-all hover:bg-slate-100 hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
             aria-label="Add new item"
           >
-            <Plus className="h-4 w-4" aria-hidden="true" />
+            <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" aria-hidden="true" />
             Add New Item
           </Link>
         </div>
 
         {/* 12-column bento grid */}
-        <div className="grid grid-cols-12 gap-4 lg:gap-6">
+        <div className="grid grid-cols-12 gap-5 lg:gap-6">
           {/* Row 1: 6 stat cards */}
           <div className="col-span-6 md:col-span-4 xl:col-span-2">
             <StatCard
@@ -258,4 +258,3 @@ export default async function Dashboard() {
     </>
   );
 }
-
