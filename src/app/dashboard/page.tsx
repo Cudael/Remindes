@@ -1,35 +1,51 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card";
+import { currentUser } from "@clerk/nextjs/server";
+import { Plus, Layers, AlertTriangle, CalendarClock, XCircle, FileText, RefreshCw } from "lucide-react";
+
 import { requireUser, getOrCreateDbUser } from "@/server/auth";
 import { db } from "@/server/db";
-import { getItemStatus, getCategoryIcon, formatCurrency, getCategoryStats } from "@/lib/item-utils";
-import { Plus, FileText, RefreshCw, AlertTriangle, Layers, XCircle, DollarSign } from "lucide-react";
+import { getItemStatus } from "@/lib/item-utils";
+
+import { DashboardTopBar } from "@/components/layout/dashboard-top-bar";
+import { StatCard } from "@/components/dashboard/stat-card";
+import { RecentlyAddedPanel } from "@/components/dashboard/recently-added-panel";
+import { ActionRequiredPanel } from "@/components/dashboard/action-required-panel";
+import { CategoryDistributionPanel } from "@/components/dashboard/category-distribution-panel";
+import { UpcomingTimelinePanel } from "@/components/dashboard/upcoming-timeline-panel";
+
+function getInitials(
+  firstName: string | null,
+  lastName: string | null,
+  email: string | null
+): string {
+  if (firstName && lastName) return `${firstName[0]}${lastName[0]}`.toUpperCase();
+  if (firstName) return firstName.slice(0, 2).toUpperCase();
+  if (email) return email.slice(0, 2).toUpperCase();
+  return "U";
+}
 
 export default async function Dashboard() {
   const clerkUserId = await requireUser();
   const user = await getOrCreateDbUser(clerkUserId);
+  const clerkUser = await currentUser();
 
   const items = await db.item.findMany({
     where: { ownerId: user.id },
-    include: { itemType: true },
+    include: {
+      itemType: true,
+      _count: { select: { attachments: true } },
+    },
     orderBy: { createdAt: "desc" },
     take: 100,
   });
 
   const now = new Date();
   const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
   let expiringSoon = 0;
   let expired = 0;
   let activeSubscriptions = 0;
-  let monthlySubscriptionCost = 0;
 
   for (const item of items) {
     const { status } = getItemStatus(item);
@@ -42,16 +58,11 @@ export default async function Dashboard() {
         : 1;
       if (renewalDiff > 0) {
         activeSubscriptions++;
-        if (item.billingCycle === "monthly") monthlySubscriptionCost += item.price;
-        else if (item.billingCycle === "yearly") monthlySubscriptionCost += item.price / 12;
-        else if (item.billingCycle === "quarterly") monthlySubscriptionCost += item.price / 3;
-        else if (item.billingCycle === "weekly") monthlySubscriptionCost += item.price * 4.33;
-        else monthlySubscriptionCost += item.price;
       }
     }
   }
 
-  // Items expiring within 30 days
+  // Items expiring within 30 days (upcoming timeline)
   const upcomingItems = items
     .filter((item) => {
       const d = item.expirationDate ?? item.renewalDate;
@@ -63,276 +74,188 @@ export default async function Dashboard() {
       const db2 = b.expirationDate ?? b.renewalDate ?? now;
       return new Date(da).getTime() - new Date(db2).getTime();
     })
-    .slice(0, 5);
+    .slice(0, 8);
 
-  const recentItems = items.slice(0, 5);
-  const categoryStats = getCategoryStats(items);
+  const recentItems = items.slice(0, 4);
   const totalItems = items.length;
 
+  // Extended computed values
+  const thisWeek = items.filter((item) => {
+    const d = item.expirationDate ?? item.renewalDate;
+    if (!d) return false;
+    return d >= now && d <= sevenDaysFromNow;
+  }).length;
+
+  const documents = items.filter((item) => item.itemClass === "document").length;
+  const subscriptions = items.filter((item) => item.itemClass === "subscription").length;
+  const missingAttachments = items.filter((item) => item._count.attachments === 0).length;
+
+  // Notification items for the top bar bell
+  const notificationItems = upcomingItems.map((item) => {
+    const { urgency } = getItemStatus(item);
+    return {
+      id: item.id,
+      name: item.name,
+      expirationDate: item.expirationDate,
+      renewalDate: item.renewalDate,
+      urgency,
+    };
+  });
+
+  // User display info
+  const firstName = clerkUser?.firstName ?? null;
+  const lastName = clerkUser?.lastName ?? null;
+  const userEmail = clerkUser?.emailAddresses?.[0]?.emailAddress ?? "";
+  const userName =
+    firstName && lastName
+      ? `${firstName} ${lastName}`
+      : firstName ?? userEmail ?? "User";
+  const userInitials = getInitials(firstName, lastName, userEmail || null);
+  const userImageUrl = clerkUser?.imageUrl ?? null;
+  const isPremium = clerkUser?.publicMetadata?.plan === "premium";
+
+  // Time-based greeting
+  const hour = now.getHours();
+  const greeting =
+    hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <div className="flex gap-2">
-          <Button asChild>
-            <Link href="/dashboard/items/new">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Item
-            </Link>
-          </Button>
+    <>
+      <DashboardTopBar
+        pageTitle="Overview"
+        notificationItems={notificationItems}
+        userName={userName}
+        userEmail={userEmail}
+        userInitials={userInitials}
+        userImageUrl={userImageUrl}
+        isPremium={isPremium}
+      />
+
+      {/* Ambient background grid */}
+      <div
+        className="fixed inset-0 z-0 pointer-events-none"
+        style={{
+          backgroundImage:
+            "linear-gradient(to right, rgba(148,163,184,0.03) 1px, transparent 1px), linear-gradient(to bottom, rgba(148,163,184,0.03) 1px, transparent 1px)",
+          backgroundSize: "48px 48px",
+        }}
+        aria-hidden="true"
+      />
+
+      <div className="relative z-10 space-y-6 pb-12">
+        {/* Greeting */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-white">
+              {greeting},{" "}
+              <span className="bg-gradient-to-r from-teal-400 to-cyan-400 bg-clip-text text-transparent">
+                {firstName ?? userName.split(" ")[0]}.
+              </span>
+            </h1>
+            <p className="mt-1 text-sm text-slate-400">
+              {totalItems === 0
+                ? "Your vault is empty. Add your first item to get started."
+                : `You have ${totalItems} item${totalItems !== 1 ? "s" : ""} in your vault.`}
+            </p>
+          </div>
+          <Link
+            href="/dashboard/items/new"
+            className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-white/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+            aria-label="Add new item"
+          >
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            Add New Item
+          </Link>
+        </div>
+
+        {/* 12-column bento grid */}
+        <div className="grid grid-cols-12 gap-4 lg:gap-6">
+          {/* Row 1: 6 stat cards */}
+          <div className="col-span-6 md:col-span-4 xl:col-span-2">
+            <StatCard
+              label="Total Items"
+              value={totalItems}
+              icon={Layers}
+              accentColor="teal"
+              activitySummary="Documents & subscriptions"
+              href="/dashboard/items"
+            />
+          </div>
+          <div className="col-span-6 md:col-span-4 xl:col-span-2">
+            <StatCard
+              label="Expiring Soon"
+              value={expiringSoon}
+              icon={AlertTriangle}
+              accentColor="amber"
+              activitySummary="Within 30 days"
+              href="/dashboard/items?status=expiring"
+            />
+          </div>
+          <div className="col-span-6 md:col-span-4 xl:col-span-2">
+            <StatCard
+              label="This Week"
+              value={thisWeek}
+              icon={CalendarClock}
+              accentColor="orange"
+              activitySummary="Next 7 days"
+              href="/dashboard/items?filter=timeline"
+            />
+          </div>
+          <div className="col-span-6 md:col-span-4 xl:col-span-2">
+            <StatCard
+              label="Expired"
+              value={expired}
+              icon={XCircle}
+              accentColor="rose"
+              isAlert={expired > 0}
+              activitySummary="Need attention"
+              href="/dashboard/items?status=expired"
+            />
+          </div>
+          <div className="col-span-6 md:col-span-4 xl:col-span-2">
+            <StatCard
+              label="Documents"
+              value={documents}
+              icon={FileText}
+              accentColor="indigo"
+              activitySummary="Stored documents"
+              href="/dashboard/items?class=document"
+            />
+          </div>
+          <div className="col-span-6 md:col-span-4 xl:col-span-2">
+            <StatCard
+              label="Subscriptions"
+              value={subscriptions}
+              icon={RefreshCw}
+              accentColor="emerald"
+              activitySummary={`${activeSubscriptions} active`}
+              href="/dashboard/items?class=subscription"
+            />
+          </div>
+
+          {/* Row 2: Recently Added + Action Required */}
+          <div className="col-span-12 lg:col-span-8">
+            <RecentlyAddedPanel items={recentItems} />
+          </div>
+          <div className="col-span-12 lg:col-span-4">
+            <ActionRequiredPanel
+              expired={expired}
+              expiringSoon={expiringSoon}
+              total={totalItems}
+              missingAttachments={missingAttachments}
+            />
+          </div>
+
+          {/* Row 3: Category Distribution + Upcoming Timeline */}
+          <div className="col-span-12 lg:col-span-4">
+            <CategoryDistributionPanel items={items} />
+          </div>
+          <div className="col-span-12 lg:col-span-8">
+            <UpcomingTimelinePanel items={upcomingItems} />
+          </div>
         </div>
       </div>
-
-      {/* Stats row */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Items
-            </CardTitle>
-            <div className="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
-              <Layers className="h-4 w-4 text-blue-500" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalItems}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Documents & subscriptions
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Expiring Soon
-            </CardTitle>
-            <div className="h-8 w-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
-              <AlertTriangle className="h-4 w-4 text-amber-500" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${expiringSoon > 0 ? "text-amber-600" : ""}`}>
-              {expiringSoon}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">Within 30 days</p>
-          </CardContent>
-        </Card>
-        <Card className="overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Expired
-            </CardTitle>
-            <div className="h-8 w-8 rounded-lg bg-red-500/10 flex items-center justify-center">
-              <XCircle className="h-4 w-4 text-red-500" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${expired > 0 ? "text-red-600" : ""}`}>
-              {expired}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">Need attention</p>
-          </CardContent>
-        </Card>
-        <Card className="overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Monthly Cost
-            </CardTitle>
-            <div className="h-8 w-8 rounded-lg bg-green-500/10 flex items-center justify-center">
-              <DollarSign className="h-4 w-4 text-green-500" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(Math.round(monthlySubscriptionCost * 100) / 100)}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {activeSubscriptions} active subscription{activeSubscriptions !== 1 ? "s" : ""}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Alerts */}
-      {(expiringSoon > 0 || expired > 0) && (
-        <Card className="border-yellow-200 bg-yellow-50">
-          <CardContent className="pt-4">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5 shrink-0" />
-              <div className="text-sm">
-                {expired > 0 && (
-                  <p className="text-red-700 font-medium">
-                    {expired} item{expired !== 1 ? "s have" : " has"} expired.{" "}
-                    <Link href="/dashboard/items?status=expired" className="underline">
-                      View expired
-                    </Link>
-                  </p>
-                )}
-                {expiringSoon > 0 && (
-                  <p className="text-yellow-700 mt-1">
-                    {expiringSoon} item{expiringSoon !== 1 ? "s are" : " is"} expiring within 30 days.{" "}
-                    <Link href="/dashboard/items?status=expiring" className="underline">
-                      View expiring soon
-                    </Link>
-                  </p>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Upcoming expirations */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-yellow-500" />
-              Upcoming Expirations
-            </CardTitle>
-            <CardDescription>Next 30 days</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {upcomingItems.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Nothing expiring in the next 30 days. 🎉
-              </p>
-            ) : (
-              <ul className="space-y-2">
-                {upcomingItems.map((item) => {
-                  const d = item.expirationDate ?? item.renewalDate;
-                  const daysLeft = d
-                    ? Math.ceil((new Date(d).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-                    : null;
-                  const cat = item.category ?? item.itemType?.category ?? "Other";
-                  return (
-                    <li key={item.id}>
-                      <Link
-                        href={`/dashboard/items/${item.id}`}
-                        className="flex items-center justify-between hover:bg-muted/50 rounded px-2 py-1.5 -mx-2 transition-colors text-sm"
-                      >
-                        <div className="flex items-center gap-2">
-                          <span>{getCategoryIcon(cat)}</span>
-                          <span className="font-medium truncate max-w-[180px]">{item.name}</span>
-                        </div>
-                        <span className={`text-xs font-medium shrink-0 ml-2 ${
-                          (daysLeft ?? 99) <= 7 ? "text-red-600" : "text-yellow-600"
-                        }`}>
-                          {daysLeft === 0 ? "Today" : `${daysLeft}d`}
-                        </span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Recent items */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Items</CardTitle>
-            <CardDescription>
-              <Link href="/dashboard/items" className="hover:underline">
-                View all →
-              </Link>
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {recentItems.length === 0 ? (
-              <div className="text-center py-4">
-                <p className="text-sm text-muted-foreground mb-3">No items yet.</p>
-                <Button asChild size="sm">
-                  <Link href="/dashboard/items/new">
-                    <Plus className="mr-1 h-3.5 w-3.5" />
-                    Add First Item
-                  </Link>
-                </Button>
-              </div>
-            ) : (
-              <ul className="space-y-2">
-                {recentItems.map((item) => {
-                  const cat = item.category ?? item.itemType?.category ?? "Other";
-                  return (
-                    <li key={item.id}>
-                      <Link
-                        href={`/dashboard/items/${item.id}`}
-                        className="flex items-center gap-2 hover:bg-muted/50 rounded px-2 py-1.5 -mx-2 transition-colors text-sm"
-                      >
-                        <span>{getCategoryIcon(cat)}</span>
-                        <span className="font-medium truncate flex-1">{item.name}</span>
-                        {item.itemClass === "subscription" ? (
-                          <RefreshCw className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                        ) : (
-                          <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                        )}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Category breakdown */}
-      {categoryStats.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Items by Category</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {categoryStats.map((cat) => (
-                <div key={cat.category} className="space-y-1">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-2">
-                      <span>{getCategoryIcon(cat.category)}</span>
-                      {cat.category}
-                    </span>
-                    <span className="font-medium">{cat.count}</span>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary rounded-full transition-all"
-                      style={{ width: `${(cat.count / totalItems) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Quick actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
-          <Button asChild variant="outline" size="sm">
-            <Link href="/dashboard/items/new">
-              <FileText className="mr-1.5 h-3.5 w-3.5" />
-              Add Document
-            </Link>
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <Link href="/dashboard/items/new">
-              <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
-              Add Subscription
-            </Link>
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <Link href="/dashboard/items">
-              View All Items
-            </Link>
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
+    </>
   );
 }
 
