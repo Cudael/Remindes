@@ -1,21 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card";
-import { Plus, LayoutGrid, List, AlertTriangle, Package } from "lucide-react";
-import { ItemCard } from "@/components/items/ItemCard";
-import { FilterBar } from "@/components/items/FilterBar";
-import { StatsCard } from "@/components/items/StatsCard";
-import { EmptyState } from "@/components/items/EmptyState";
-import { getItemStatus, formatCurrency } from "@/lib/item-utils";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Plus, Search, SlidersHorizontal, AlertTriangle, Loader2, X } from "lucide-react";
+import { useUser } from "@clerk/nextjs";
+
+import { VaultItemCard } from "@/components/items/VaultItemCard";
+import { VaultFilterPanel, type StatFilterValue, type CategoryFilter } from "@/components/items/VaultFilterPanel";
+import { VaultInsights } from "@/components/items/VaultInsights";
+import { VaultEmptyState } from "@/components/items/VaultEmptyState";
+import { DeleteModal } from "@/components/common/DeleteModal";
+import { getItemStatus } from "@/lib/item-utils";
+
+const FREE_PLAN_LIMIT = 20;
+const FREE_PLAN_WARN_AT = 15;
 
 interface ItemType {
   id: string;
@@ -51,6 +49,16 @@ interface Stats {
   monthlySubscriptionCost: number;
 }
 
+// Map our UI stat-filter values to API status param values
+function statFilterToApiStatus(filter: StatFilterValue): string {
+  switch (filter) {
+    case "soon": return "expiring";
+    case "week": return "expiring";
+    case "expired": return "expired";
+    default: return "";
+  }
+}
+
 async function fetchItems(params: Record<string, string> = {}): Promise<Item[]> {
   const qs = new URLSearchParams(params).toString();
   const res = await fetch(`/api/v1/items${qs ? `?${qs}` : ""}`);
@@ -75,243 +83,309 @@ async function fetchCategories(): Promise<string[]> {
 
 export default function ItemsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { user } = useUser();
+  const isPremium = user?.publicMetadata?.plan === "premium";
+
   const [items, setItems] = useState<Item[]>([]);
+  const [allItems, setAllItems] = useState<Item[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
   const [isPending, startTransition] = useTransition();
-  const [isGridView, setIsGridView] = useState(true);
 
   // Filters
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState("");
+  const [activeCategory, setActiveCategory] = useState("");
+  const [activeStatFilter, setActiveStatFilter] = useState<StatFilterValue>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [showInsights, setShowInsights] = useState(true);
+
+  // Delete modal state
+  const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Read URL param on mount
+  useEffect(() => {
+    const filterParam = searchParams.get("filter") as StatFilterValue | null;
+    if (filterParam) {
+      setActiveStatFilter(filterParam);
+      setShowFilters(true);
+    }
+    const categoryParam = searchParams.get("category");
+    if (categoryParam) {
+      setActiveCategory(categoryParam);
+      setShowFilters(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Sync URL query params
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (activeStatFilter !== "all") params.set("filter", activeStatFilter);
+    if (activeCategory) params.set("category", activeCategory);
+    if (searchQuery) params.set("search", searchQuery);
+    const qs = params.toString();
+    router.replace(`/dashboard/items${qs ? `?${qs}` : ""}`, { scroll: false });
+  }, [activeStatFilter, activeCategory, searchQuery, router]);
 
   const loadData = useCallback(() => {
     const params: Record<string, string> = {};
-    if (selectedCategory) params.category = selectedCategory;
-    if (selectedStatus) params.status = selectedStatus;
+    if (activeCategory) params.category = activeCategory;
+    const apiStatus = statFilterToApiStatus(activeStatFilter);
+    if (apiStatus) params.status = apiStatus;
     if (searchQuery) params.search = searchQuery;
 
     startTransition(async () => {
-      const [itemsData, statsData, categoriesData] = await Promise.all([
+      const [itemsData, statsData, categoriesData, allItemsData] = await Promise.all([
         fetchItems(params),
         fetchStats(),
         fetchCategories(),
+        fetchItems(), // unfiltered for counts
       ]);
       setItems(itemsData);
       setStats(statsData);
       setCategories(categoriesData);
+      setAllItems(allItemsData);
     });
-  }, [selectedCategory, selectedStatus, searchQuery]);
+  }, [activeCategory, activeStatFilter, searchQuery]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  function handleDelete(id: string) {
-    startTransition(async () => {
-      const res = await fetch(`/api/v1/items/${id}`, { method: "DELETE" });
-      if (res.ok) loadData();
-    });
+  // Client-side filter for document/subscription class filters
+  const filteredItems = items.filter((item) => {
+    if (activeStatFilter === "documents") return item.itemClass !== "subscription";
+    if (activeStatFilter === "subscriptions") return item.itemClass === "subscription";
+    if (activeStatFilter === "missingDocs") return !item.documentNumber;
+    return true;
+  });
+
+  const hasActiveFilters =
+    activeStatFilter !== "all" || !!activeCategory || !!searchQuery;
+
+  // Category filters with counts from unfiltered items
+  const categoryFilters: CategoryFilter[] = categories.map((cat) => ({
+    label: cat,
+    value: cat,
+    count: allItems.filter((i) => (i.category ?? i.itemType?.category ?? "Other") === cat).length,
+  }));
+
+  // Insights data
+  const expiredCount = allItems.filter((i) => getItemStatus(i).status === "expired").length;
+  const expiringCount = allItems.filter((i) => getItemStatus(i).status === "expiring").length;
+  const documentsCount = allItems.filter((i) => i.itemClass !== "subscription").length;
+  const subscriptionsCount = allItems.filter((i) => i.itemClass === "subscription").length;
+
+  function handleStatFilter(key: string) {
+    setActiveStatFilter(key as StatFilterValue);
   }
 
-  const expiredCount = items.filter((i) => getItemStatus(i).status === "expired").length;
-  const expiringCount = items.filter((i) => getItemStatus(i).status === "expiring").length;
+  function handleClearFilters() {
+    setActiveStatFilter("all");
+    setActiveCategory("");
+    setSearchQuery("");
+  }
+
+  function openDeleteModal(item: Item) {
+    setItemToDelete(item);
+  }
+
+  async function confirmDelete() {
+    if (!itemToDelete) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/v1/items/${itemToDelete.id}`, { method: "DELETE" });
+      if (res.ok) {
+        setItemToDelete(null);
+        loadData();
+      }
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
+  const totalItems = allItems.length;
+  const atLimit = !isPremium && totalItems >= FREE_PLAN_LIMIT;
+  const nearLimit = !isPremium && totalItems >= FREE_PLAN_WARN_AT && totalItems < FREE_PLAN_LIMIT;
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-3xl font-bold">Items</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage your documents and subscriptions
-          </p>
-        </div>
-        <Button onClick={() => router.push("/dashboard/items/new")}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Item
-        </Button>
+    <div className="relative min-h-screen bg-slate-950 text-white">
+      {/* Ambient background */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        {/* Grid mesh */}
+        <div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)",
+            backgroundSize: "40px 40px",
+          }}
+        />
+        {/* Teal gradient blobs */}
+        <div className="absolute -top-40 -left-40 h-96 w-96 rounded-full bg-teal-500/10 blur-3xl" />
+        <div className="absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-cyan-500/8 blur-3xl" />
       </div>
 
-      {/* Stats cards */}
-      {stats && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StatsCard
-            title="Total Items"
-            value={stats.total}
-            icon={<Package className="h-4 w-4" />}
-          />
-          <StatsCard
-            title="Expiring Soon"
-            value={stats.expiringSoon}
-            icon={<AlertTriangle className="h-4 w-4" />}
-            colorClass={stats.expiringSoon > 0 ? "text-yellow-600" : "text-foreground"}
-          />
-          <StatsCard
-            title="Expired"
-            value={stats.expired}
-            icon={<AlertTriangle className="h-4 w-4" />}
-            colorClass={stats.expired > 0 ? "text-red-600" : "text-foreground"}
-          />
-          <StatsCard
-            title="Monthly Cost"
-            value={formatCurrency(stats.monthlySubscriptionCost)}
-            icon={<span className="text-sm">💳</span>}
-            description={`${stats.activeSubscriptions} active subscription${stats.activeSubscriptions !== 1 ? "s" : ""}`}
+      <div className="relative z-10 mx-auto max-w-7xl px-4 py-8 space-y-6 sm:px-6">
+
+        {/* Top bar */}
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Search */}
+          <div className="relative flex-1 min-w-52">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+            <input
+              type="text"
+              placeholder="Search vault…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full rounded-2xl border border-white/5 bg-slate-900/60 backdrop-blur-xl pl-10 pr-10 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-teal-500/40 focus:outline-none focus:ring-1 focus:ring-teal-500/20"
+            />
+            {searchQuery && (
+              <button
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                onClick={() => setSearchQuery("")}
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Filter toggle */}
+          <button
+            onClick={() => setShowFilters((v) => !v)}
+            className={`relative flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-medium transition-all duration-150 ${
+              showFilters || hasActiveFilters
+                ? "border-teal-500/30 bg-teal-500/10 text-teal-300"
+                : "border-white/5 bg-slate-900/60 text-slate-400 hover:text-white hover:border-white/10"
+            }`}
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+            Filters
+            {hasActiveFilters && (
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-teal-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-teal-500" />
+              </span>
+            )}
+          </button>
+
+          {/* New Item */}
+          <button
+            onClick={() => router.push("/dashboard/items/new")}
+            className="flex items-center gap-2 rounded-2xl bg-teal-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-teal-400 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            New Item
+          </button>
+        </div>
+
+        {/* Filter panel (slide-down) */}
+        <div
+          className="overflow-hidden transition-all duration-200 ease-out"
+          style={{ maxHeight: showFilters ? "600px" : "0px" }}
+        >
+          <VaultFilterPanel
+            activeCategory={activeCategory}
+            activeStatFilter={activeStatFilter}
+            categoryFilters={categoryFilters}
+            hasActiveFilters={hasActiveFilters}
+            onCategoryChange={setActiveCategory}
+            onStatFilterChange={setActiveStatFilter}
+            onClearFilters={handleClearFilters}
           />
         </div>
-      )}
 
-      {/* Filters */}
-      <Card>
-        <CardContent className="pt-4">
-          <FilterBar
-            categories={categories}
-            selectedCategory={selectedCategory}
-            onCategoryChange={setSelectedCategory}
-            selectedStatus={selectedStatus}
-            onStatusChange={setSelectedStatus}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-          />
-        </CardContent>
-      </Card>
+        {/* Insights accordion */}
+        <VaultInsights
+          showInsights={showInsights}
+          onToggle={() => setShowInsights((v) => !v)}
+          insights={{ needsAttention: expiredCount, expiringThisMonth: expiringCount }}
+          documentsCount={documentsCount}
+          subscriptionsCount={subscriptionsCount}
+          onFilter={handleStatFilter}
+        />
 
-      {/* Items list / grid */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Your Items</CardTitle>
-              <CardDescription>
-                {isPending
-                  ? "Loading…"
-                  : items.length === 0
-                    ? "No items found. Create one above."
-                    : `${items.length} item${items.length !== 1 ? "s" : ""}`}
-              </CardDescription>
+        {/* Item limit banner */}
+        {atLimit && (
+          <div className="flex items-center gap-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-5 py-3.5">
+            <span className="relative flex h-2.5 w-2.5 shrink-0">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-rose-500" />
+            </span>
+            <div className="flex-1 text-sm text-rose-200">
+              <span className="font-semibold">Vault full.</span> You&apos;ve reached the {FREE_PLAN_LIMIT}-item limit on the free plan.
             </div>
-            <div className="flex gap-1">
-              <Button
-                variant={isGridView ? "secondary" : "ghost"}
-                size="icon"
-                onClick={() => setIsGridView(true)}
-                aria-label="Grid view"
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={!isGridView ? "secondary" : "ghost"}
-                size="icon"
-                onClick={() => setIsGridView(false)}
-                aria-label="List view"
-              >
-                <List className="h-4 w-4" />
-              </Button>
-            </div>
+            <button className="shrink-0 rounded-xl bg-rose-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-400 transition-colors">
+              Upgrade to Pro
+            </button>
           </div>
-        </CardHeader>
-        <CardContent>
-          {items.length === 0 && !isPending ? (
-            <EmptyState
-              searchQuery={searchQuery}
-              selectedCategory={selectedCategory}
-              selectedStatus={selectedStatus}
+        )}
+
+        {nearLimit && (
+          <div className="flex items-center gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-5 py-3.5">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400" />
+            <p className="flex-1 text-sm text-amber-200">
+              <span className="font-semibold">{totalItems}/{FREE_PLAN_LIMIT} items used.</span> Upgrade to Pro for unlimited items.
+            </p>
+            <button className="shrink-0 rounded-xl bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-400 transition-colors">
+              Upgrade to Pro
+            </button>
+          </div>
+        )}
+
+        {/* Loading */}
+        {isPending && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-teal-500" />
+          </div>
+        )}
+
+        {/* Items grid / empty state */}
+        {!isPending && (
+          filteredItems.length === 0 ? (
+            <VaultEmptyState
+              hasActiveFilters={hasActiveFilters}
+              onClearFilters={handleClearFilters}
             />
-          ) : isGridView ? (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {items.map((item) => (
-                <ItemCard
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {filteredItems.map((item) => (
+                <VaultItemCard
                   key={item.id}
                   item={item}
-                  onClick={() => router.push(`/dashboard/items/${item.id}`)}
-                  onEdit={() => router.push(`/dashboard/items/${item.id}/edit`)}
-                  onDelete={() => handleDelete(item.id)}
+                  onDelete={openDeleteModal}
                 />
               ))}
             </div>
-          ) : (
-            <ul className="divide-y divide-border">
-              {items.map((item) => {
-                const { status, daysLeft } = getItemStatus(item);
-                const statusColors = {
-                  active: "text-green-600",
-                  expiring: "text-yellow-600",
-                  expired: "text-red-600",
-                }[status];
-                return (
-                  <li
-                    key={item.id}
-                    className="py-3 flex items-center justify-between gap-4 cursor-pointer hover:bg-muted/50 px-2 rounded transition-colors"
-                    onClick={() => router.push(`/dashboard/items/${item.id}`)}
-                  >
-                    <div>
-                      <p className="font-medium">{item.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {item.category ?? "Other"} · {item.itemType?.name ?? item.type ?? "—"}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      {daysLeft != null && (
-                        <span className={`text-sm font-medium ${statusColors}`}>
-                          {daysLeft < 0
-                            ? `${Math.abs(daysLeft)}d ago`
-                            : daysLeft === 0
-                              ? "Today"
-                              : `${daysLeft}d`}
-                        </span>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/dashboard/items/${item.id}/edit`);
-                        }}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive hover:text-destructive"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(item.id);
-                        }}
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+          )
+        )}
 
-          {/* Warning banners */}
-          {(expiredCount > 0 || expiringCount > 0) && !isPending && (
-            <div className="mt-4 space-y-2">
-              {expiredCount > 0 && (
-                <div className="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
-                  <AlertTriangle className="h-4 w-4 shrink-0" />
-                  <span>
-                    {expiredCount} item{expiredCount !== 1 ? "s have" : " has"} expired and may need renewal.
-                  </span>
-                </div>
-              )}
-              {expiringCount > 0 && (
-                <div className="flex items-center gap-2 rounded-lg bg-yellow-50 border border-yellow-200 px-3 py-2 text-sm text-yellow-700">
-                  <AlertTriangle className="h-4 w-4 shrink-0" />
-                  <span>
-                    {expiringCount} item{expiringCount !== 1 ? "s are" : " is"} expiring within 30 days.
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        {/* Item count footer */}
+        {!isPending && filteredItems.length > 0 && (
+          <p className="text-center text-xs text-slate-600">
+            {filteredItems.length} item{filteredItems.length !== 1 ? "s" : ""}
+            {stats ? ` · ${stats.total} total in vault` : ""}
+          </p>
+        )}
+      </div>
+
+      {/* Delete modal — keyed so it remounts (fresh state) for each item */}
+      <DeleteModal
+        key={itemToDelete?.id ?? "none"}
+        show={!!itemToDelete}
+        title="Delete Item"
+        message="Are you sure you want to delete this item? This action cannot be undone."
+        itemName={itemToDelete?.name}
+        itemDescription={itemToDelete?.category ?? itemToDelete?.itemType?.category ?? undefined}
+        itemIcon={itemToDelete?.itemType?.icon ?? undefined}
+        permanent
+        loading={isDeleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setItemToDelete(null)}
+      />
     </div>
   );
 }
