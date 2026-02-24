@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { PrismaClient, ItemClass } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
@@ -9,7 +9,6 @@ const defaultItemTypes = [
   {
     name: "Passport",
     category: "Travel",
-    itemClass: ItemClass.document,
     description: "Government-issued passport for international travel",
     icon: "passport",
     fieldsConfig: [
@@ -21,7 +20,6 @@ const defaultItemTypes = [
   {
     name: "Driver License",
     category: "Identification",
-    itemClass: ItemClass.document,
     description: "Government-issued driver license",
     icon: "car",
     fieldsConfig: [
@@ -33,7 +31,6 @@ const defaultItemTypes = [
   {
     name: "National ID",
     category: "Identification",
-    itemClass: ItemClass.document,
     description: "National identification card",
     icon: "id-card",
     fieldsConfig: [
@@ -43,8 +40,7 @@ const defaultItemTypes = [
   },
   {
     name: "Netflix",
-    category: "Entertainment",
-    itemClass: ItemClass.subscription,
+    category: "Subscription",
     description: "Netflix streaming service subscription",
     icon: "tv",
     fieldsConfig: [
@@ -55,8 +51,7 @@ const defaultItemTypes = [
   },
   {
     name: "Spotify",
-    category: "Entertainment",
-    itemClass: ItemClass.subscription,
+    category: "Subscription",
     description: "Spotify music streaming subscription",
     icon: "music",
     fieldsConfig: [
@@ -68,7 +63,6 @@ const defaultItemTypes = [
   {
     name: "Health Insurance",
     category: "Insurance",
-    itemClass: ItemClass.document,
     description: "Health insurance policy",
     icon: "heart-pulse",
     fieldsConfig: [
