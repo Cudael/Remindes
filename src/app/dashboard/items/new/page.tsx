@@ -2,19 +2,16 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { ChevronLeft, ChevronRight, Check } from "lucide-react";
+  ChevronRight,
+  ChevronLeft,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  Info,
+} from "lucide-react";
 import { DynamicFormFields } from "@/components/items/DynamicFormFields";
-import { CategoryBadge } from "@/components/items/CategoryBadge";
 import { getCategoryIcon } from "@/lib/item-utils";
 import type { FieldConfig } from "@/components/items/DynamicFormFields";
 
@@ -28,33 +25,37 @@ interface ItemType {
   fieldsConfig: FieldConfig[];
 }
 
-const STEPS = ["Category & Type", "Basic Info", "Details", "Reminders", "Review"];
+const STEPS = ["Classification", "Item Details", "Review & Confirm"];
+const REMINDER_OPTIONS = [
+  { label: "Default (7d)", value: "7" },
+  { label: "14d", value: "14" },
+  { label: "30d", value: "30" },
+  { label: "60d", value: "60" },
+];
 
 export default function NewItemPage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [animDir, setAnimDir] = useState<"forward" | "back">("forward");
+  const [animating, setAnimating] = useState(false);
 
-  // Step 1: Category & Type
+  // Step 1
   const [itemTypes, setItemTypes] = useState<ItemType[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedItemTypeId, setSelectedItemTypeId] = useState("");
-
-  // Step 2: Basic Info
   const [name, setName] = useState("");
-  const [notes, setNotes] = useState("");
 
-  // Step 3: Details - Standard fields
+  // Step 2
   const [expirationDate, setExpirationDate] = useState("");
   const [renewalDate, setRenewalDate] = useState("");
   const [documentNumber, setDocumentNumber] = useState("");
   const [price, setPrice] = useState("");
   const [billingCycle, setBillingCycle] = useState("");
   const [dynamicFields, setDynamicFields] = useState<Record<string, string | number>>({});
-
-  // Step 4: Reminders
+  const [notes, setNotes] = useState("");
   const [reminderDaysBefore, setReminderDaysBefore] = useState("7");
 
   useEffect(() => {
@@ -78,9 +79,18 @@ export default function NewItemPage() {
   }
 
   function canAdvance(): boolean {
-    if (step === 0) return !!selectedItemTypeId;
-    if (step === 1) return !!name.trim();
+    if (step === 0) return !!selectedItemTypeId && !!name.trim();
     return true;
+  }
+
+  function goTo(next: number) {
+    if (next > step && !canAdvance()) return;
+    setAnimDir(next > step ? "forward" : "back");
+    setAnimating(true);
+    setTimeout(() => {
+      setStep(next);
+      setAnimating(false);
+    }, 180);
   }
 
   function handleSubmit() {
@@ -125,361 +135,406 @@ export default function NewItemPage() {
   const isDocument = selectedItemType?.itemClass === "document" || !selectedItemType;
   const isSubscription = selectedItemType?.itemClass === "subscription";
 
+  const translateClass = animating
+    ? animDir === "forward"
+      ? "-translate-x-4 opacity-0"
+      : "translate-x-4 opacity-0"
+    : "translate-x-0 opacity-100";
+
   return (
-    <div className="container mx-auto max-w-2xl p-6 space-y-6">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => router.back()}>
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold">Add New Item</h1>
-          <p className="text-muted-foreground text-sm">
-            Step {step + 1} of {STEPS.length}: {STEPS[step]}
-          </p>
+    <div className="relative min-h-screen bg-slate-950 overflow-hidden">
+      {/* Ambient background */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-30"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(255,255,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.02) 1px,transparent 1px)",
+          backgroundSize: "32px 32px",
+        }}
+      />
+      <div className="pointer-events-none absolute left-1/2 top-1/3 h-96 w-96 -translate-x-1/2 -translate-y-1/2 rounded-full bg-teal-500/10 blur-3xl" />
+
+      <div className="relative mx-auto max-w-2xl px-4 py-8 space-y-6">
+        {/* Breadcrumb */}
+        <nav className="flex items-center gap-2 text-sm text-slate-500">
+          <Link href="/dashboard" className="hover:text-slate-300 transition-colors">
+            Dashboard
+          </Link>
+          <ChevronRight className="h-3.5 w-3.5" />
+          <Link href="/dashboard/items" className="hover:text-slate-300 transition-colors">
+            Vault
+          </Link>
+          <ChevronRight className="h-3.5 w-3.5" />
+          <span className="text-teal-400 font-medium">Add Item</span>
+        </nav>
+
+        {/* Header row */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-extrabold text-white tracking-tight">Add New Item</h1>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mt-1">
+              {STEPS[step]}
+            </p>
+          </div>
+          {/* Step badge */}
+          <div className="rounded-xl border border-white/5 bg-slate-900/60 backdrop-blur-xl px-4 py-2 text-sm font-semibold text-slate-300">
+            Step <span className="text-teal-400">{step + 1}</span> / {STEPS.length}
+          </div>
         </div>
-      </div>
 
-      {/* Progress bar */}
-      <div className="flex gap-1">
-        {STEPS.map((s, i) => (
+        {/* Segmented progress bar */}
+        <div className="flex gap-2">
+          {STEPS.map((_, i) => (
+            <div key={i} className="relative h-1.5 flex-1 rounded-full overflow-hidden bg-white/5">
+              <div
+                className="absolute inset-y-0 left-0 rounded-full transition-all duration-500"
+                style={{
+                  width: i <= step ? "100%" : "0%",
+                  background: i <= step
+                    ? "linear-gradient(90deg, #14b8a6, #06b6d4)"
+                    : "transparent",
+                  boxShadow: i <= step ? "0 0 8px rgba(20,184,166,0.6)" : "none",
+                }}
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* Main form canvas */}
+        <div className="relative rounded-[2rem] border border-white/5 bg-slate-900/60 backdrop-blur-xl shadow-2xl overflow-hidden">
+          {/* Top glow edge */}
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-teal-400 to-transparent opacity-50" />
+
           <div
-            key={s}
-            className={`h-1.5 flex-1 rounded-full transition-colors ${
-              i <= step ? "bg-primary" : "bg-muted"
-            }`}
-          />
-        ))}
-      </div>
-
-      {/* Step 1: Category & Type */}
-      {step === 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Select Category &amp; Type</CardTitle>
-            <CardDescription>
-              Choose what kind of item you want to add.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Category selection */}
-            <div>
-              <Label className="mb-2 block">Category</Label>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant={selectedCategory === "" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedCategory("")}
-                >
-                  All
-                </Button>
-                {categories.map((cat) => (
-                  <Button
-                    key={cat}
-                    variant={selectedCategory === cat ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedCategory(cat)}
-                  >
-                    <span className="mr-1">{getCategoryIcon(cat)}</span>
-                    {cat}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            {/* Item type grid */}
-            <div>
-              <Label className="mb-2 block">Item Type</Label>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {filteredTypes.map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={() => setSelectedItemTypeId(t.id)}
-                    className={`flex items-start gap-3 rounded-lg border p-3 text-left transition-all hover:border-primary ${
-                      selectedItemTypeId === t.id
-                        ? "border-primary bg-primary/5 ring-1 ring-primary"
-                        : "border-border"
-                    }`}
-                  >
-                    <span className="text-2xl">{t.icon ?? getCategoryIcon(t.category)}</span>
-                    <div>
-                      <p className="font-medium text-sm">{t.name}</p>
-                      {t.description && (
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {t.description}
-                        </p>
-                      )}
-                      <CategoryBadge category={t.category} className="mt-1" />
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {filteredTypes.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No item types found for this category.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Step 2: Basic Info */}
-      {step === 1 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Basic Information</CardTitle>
-            {selectedItemType && (
-              <CardDescription>
-                Adding a{" "}
-                <strong>
-                  {selectedItemType.icon} {selectedItemType.name}
-                </strong>
-              </CardDescription>
-            )}
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">
-                Name <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="name"
-                placeholder={
-                  selectedItemType ? `e.g. My ${selectedItemType.name}` : "Item name"
-                }
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                autoFocus
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="notes">Notes (optional)</Label>
-              <textarea
-                id="notes"
-                className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                placeholder="Any additional notes…"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-              />
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Step 3: Details */}
-      {step === 2 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Details</CardTitle>
-            <CardDescription>
-              Fill in the specific information for this item.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Standard fields based on itemClass */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              {isDocument && (
-                <>
-                  <div className="grid gap-2">
-                    <Label htmlFor="documentNumber">Document Number</Label>
-                    <Input
-                      id="documentNumber"
-                      value={documentNumber}
-                      onChange={(e) => setDocumentNumber(e.target.value)}
-                      placeholder="e.g. AB123456"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="expirationDate">Expiration Date</Label>
-                    <Input
-                      id="expirationDate"
-                      type="date"
-                      value={expirationDate}
-                      onChange={(e) => setExpirationDate(e.target.value)}
-                    />
-                  </div>
-                </>
-              )}
-              {isSubscription && (
-                <>
-                  <div className="grid gap-2">
-                    <Label htmlFor="price">Price</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={price}
-                      onChange={(e) => setPrice(e.target.value)}
-                      placeholder="0.00"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="billingCycle">Billing Cycle</Label>
-                    <select
-                      id="billingCycle"
-                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                      value={billingCycle}
-                      onChange={(e) => setBillingCycle(e.target.value)}
-                    >
-                      <option value="">Select…</option>
-                      <option value="monthly">Monthly</option>
-                      <option value="quarterly">Quarterly</option>
-                      <option value="yearly">Yearly</option>
-                      <option value="weekly">Weekly</option>
-                    </select>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="renewalDate">Renewal Date</Label>
-                    <Input
-                      id="renewalDate"
-                      type="date"
-                      value={renewalDate}
-                      onChange={(e) => setRenewalDate(e.target.value)}
-                    />
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Dynamic fields from item type config */}
-            {selectedItemType && selectedItemType.fieldsConfig.length > 0 && (
-              <div className="mt-4">
-                <p className="text-sm font-medium mb-3">
-                  {selectedItemType.name} Details
-                </p>
-                <DynamicFormFields
-                  fieldsConfig={selectedItemType.fieldsConfig}
-                  values={dynamicFields}
-                  onChange={handleDynamicChange}
-                />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Step 4: Reminders */}
-      {step === 3 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Reminders</CardTitle>
-            <CardDescription>
-              Configure when you want to be reminded before expiration or renewal.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-2">
-              <Label htmlFor="reminderDays">Remind me (days before)</Label>
-              <Input
-                id="reminderDays"
-                type="number"
-                min="0"
-                max="365"
-                value={reminderDaysBefore}
-                onChange={(e) => setReminderDaysBefore(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                You will be notified {reminderDaysBefore || 7} day
-                {Number(reminderDaysBefore) !== 1 ? "s" : ""} before expiration or
-                renewal.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Step 5: Review */}
-      {step === 4 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Review &amp; Create</CardTitle>
-            <CardDescription>Confirm your item details before creating.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="rounded-lg bg-muted p-4 space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Name</span>
-                <span className="font-medium">{name}</span>
-              </div>
-              {selectedItemType && (
-                <>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Type</span>
-                    <span className="font-medium">
-                      {selectedItemType.icon} {selectedItemType.name}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Category</span>
-                    <CategoryBadge category={selectedItemType.category} />
-                  </div>
-                </>
-              )}
-              {expirationDate && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Expires</span>
-                  <span className="font-medium">{expirationDate}</span>
-                </div>
-              )}
-              {renewalDate && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Renews</span>
-                  <span className="font-medium">{renewalDate}</span>
-                </div>
-              )}
-              {price && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Price</span>
-                  <span className="font-medium">
-                    ${price} {billingCycle && `/ ${billingCycle}`}
-                  </span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Reminder</span>
-                <span className="font-medium">{reminderDaysBefore} days before</span>
-              </div>
-              {notes && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Notes</span>
-                  <span className="font-medium truncate max-w-[200px]">{notes}</span>
-                </div>
-              )}
-            </div>
-
-            {error && <p className="text-sm text-destructive">{error}</p>}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Navigation */}
-      <div className="flex justify-between">
-        <Button
-          variant="outline"
-          onClick={() => (step === 0 ? router.back() : setStep((s) => s - 1))}
-          disabled={isPending}
-        >
-          <ChevronLeft className="mr-1 h-4 w-4" />
-          {step === 0 ? "Cancel" : "Back"}
-        </Button>
-
-        {step < STEPS.length - 1 ? (
-          <Button
-            onClick={() => setStep((s) => s + 1)}
-            disabled={!canAdvance() || isPending}
+            className={`p-8 transition-all duration-200 ease-out ${translateClass}`}
           >
-            Next
-            <ChevronRight className="ml-1 h-4 w-4" />
-          </Button>
-        ) : (
-          <Button onClick={handleSubmit} disabled={isPending}>
-            <Check className="mr-1 h-4 w-4" />
-            {isPending ? "Creating…" : "Create Item"}
-          </Button>
-        )}
+            {/* Step 1: Classification */}
+            {step === 0 && (
+              <div className="space-y-6">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">
+                    Category
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setSelectedCategory("")}
+                      className={`rounded-xl px-4 py-1.5 text-sm font-semibold border transition-colors ${
+                        selectedCategory === ""
+                          ? "bg-gradient-to-r from-teal-500 to-cyan-500 text-slate-950 border-transparent"
+                          : "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10"
+                      }`}
+                    >
+                      All
+                    </button>
+                    {categories.map((cat) => (
+                      <button
+                        key={cat}
+                        onClick={() => setSelectedCategory(cat)}
+                        className={`rounded-xl px-4 py-1.5 text-sm font-semibold border transition-colors ${
+                          selectedCategory === cat
+                            ? "bg-gradient-to-r from-teal-500 to-cyan-500 text-slate-950 border-transparent"
+                            : "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10"
+                        }`}
+                      >
+                        <span className="mr-1.5">{getCategoryIcon(cat)}</span>
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">
+                    Item Type
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {filteredTypes.map((t) => (
+                      <button
+                        key={t.id}
+                        onClick={() => setSelectedItemTypeId(t.id)}
+                        className={`flex items-start gap-3 rounded-2xl border p-4 text-left transition-all ${
+                          selectedItemTypeId === t.id
+                            ? "border-teal-500/50 bg-teal-500/10 shadow-[0_0_12px_rgba(20,184,166,0.2)]"
+                            : "border-white/5 bg-white/5 hover:border-white/10 hover:bg-white/10"
+                        }`}
+                      >
+                        <span className="text-2xl shrink-0">{t.icon ?? getCategoryIcon(t.category)}</span>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-sm text-white">{t.name}</p>
+                          {t.description && (
+                            <p className="text-xs text-slate-500 mt-0.5 truncate">{t.description}</p>
+                          )}
+                          <span className="inline-block mt-1 text-[10px] font-bold uppercase tracking-widest text-teal-400/80">
+                            {t.category}
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                    {filteredTypes.length === 0 && (
+                      <p className="col-span-2 text-sm text-slate-500 text-center py-6">
+                        No item types found for this category.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Name field in step 1 */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-300 mb-2">
+                    Item Name <span className="text-rose-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={
+                      selectedItemType ? `e.g. My ${selectedItemType.name}` : "Give this item a name"
+                    }
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full rounded-lg bg-white/5 border border-gray-700/50 px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Item Details */}
+            {step === 1 && (
+              <div className="space-y-6">
+                {selectedItemType && (
+                  <div className="flex items-center gap-3 pb-2 border-b border-white/5">
+                    <span className="text-3xl">{selectedItemType.icon ?? getCategoryIcon(selectedItemType.category)}</span>
+                    <div>
+                      <p className="font-bold text-white">{name}</p>
+                      <p className="text-xs text-slate-500">{selectedItemType.name} · {selectedItemType.category}</p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {isDocument && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-300 mb-2">Document Number</label>
+                        <input
+                          type="text"
+                          value={documentNumber}
+                          onChange={(e) => setDocumentNumber(e.target.value)}
+                          placeholder="e.g. AB123456"
+                          className="w-full rounded-lg bg-white/5 border border-gray-700/50 px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-300 mb-2">Expiration Date</label>
+                        <input
+                          type="date"
+                          value={expirationDate}
+                          onChange={(e) => setExpirationDate(e.target.value)}
+                          className="w-full rounded-lg bg-white/5 border border-gray-700/50 px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 transition [color-scheme:dark]"
+                        />
+                      </div>
+                    </>
+                  )}
+                  {isSubscription && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-300 mb-2">Price</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={price}
+                          onChange={(e) => setPrice(e.target.value)}
+                          placeholder="0.00"
+                          className="w-full rounded-lg bg-white/5 border border-gray-700/50 px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-300 mb-2">Billing Cycle</label>
+                        <select
+                          value={billingCycle}
+                          onChange={(e) => setBillingCycle(e.target.value)}
+                          className="w-full rounded-lg bg-slate-800 border border-gray-700/50 px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
+                        >
+                          <option value="">Select…</option>
+                          <option value="monthly">Monthly</option>
+                          <option value="quarterly">Quarterly</option>
+                          <option value="yearly">Yearly</option>
+                          <option value="weekly">Weekly</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-300 mb-2">Renewal Date</label>
+                        <input
+                          type="date"
+                          value={renewalDate}
+                          onChange={(e) => setRenewalDate(e.target.value)}
+                          className="w-full rounded-lg bg-white/5 border border-gray-700/50 px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 transition [color-scheme:dark]"
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {selectedItemType && selectedItemType.fieldsConfig.length > 0 && (
+                  <div>
+                    <p className="text-sm font-semibold text-gray-300 mb-3">
+                      {selectedItemType.name} Details
+                    </p>
+                    <DynamicFormFields
+                      fieldsConfig={selectedItemType.fieldsConfig}
+                      values={dynamicFields}
+                      onChange={handleDynamicChange}
+                    />
+                  </div>
+                )}
+
+                {/* Reminder schedule widget */}
+                <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-4 space-y-3">
+                  <div className="flex items-start gap-2">
+                    <Info className="h-4 w-4 text-blue-400 shrink-0 mt-0.5" />
+                    <p className="text-sm text-blue-300">
+                      Custom reminder for this item. Choose how many days before expiration/renewal you want to be notified.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {REMINDER_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.label}
+                        onClick={() => setReminderDaysBefore(opt.value)}
+                        className={`rounded-xl px-4 py-1.5 text-sm font-semibold border transition-colors ${
+                          reminderDaysBefore === opt.value
+                            ? "bg-gradient-to-r from-teal-500 to-cyan-500 text-slate-950 border-transparent"
+                            : "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Notes */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-300 mb-2">Notes (optional)</label>
+                  <textarea
+                    rows={3}
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Any additional notes…"
+                    className="w-full rounded-lg bg-white/5 border border-gray-700/50 px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 transition resize-none"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Review */}
+            {step === 2 && (
+              <div className="space-y-4">
+                <h2 className="text-lg font-bold text-white">Review &amp; Confirm</h2>
+                <div className="rounded-2xl border border-white/5 bg-white/5 p-5 space-y-3 text-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400">Name</span>
+                    <span className="font-semibold text-white">{name}</span>
+                  </div>
+                  {selectedItemType && (
+                    <>
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-400">Type</span>
+                        <span className="font-semibold text-white">
+                          {selectedItemType.icon} {selectedItemType.name}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-400">Category</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-teal-400">
+                          {selectedItemType.category}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                  {expirationDate && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400">Expires</span>
+                      <span className="font-semibold text-white">{expirationDate}</span>
+                    </div>
+                  )}
+                  {renewalDate && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400">Renews</span>
+                      <span className="font-semibold text-white">{renewalDate}</span>
+                    </div>
+                  )}
+                  {price && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400">Price</span>
+                      <span className="font-semibold text-white">
+                        ${price}{billingCycle && ` / ${billingCycle}`}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400">Reminder</span>
+                    <span className="font-semibold text-white">{reminderDaysBefore} days before</span>
+                  </div>
+                  {notes && (
+                    <div className="flex justify-between items-start gap-4">
+                      <span className="text-slate-400 shrink-0">Notes</span>
+                      <span className="font-medium text-white text-right truncate max-w-[220px]">{notes}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Error banner */}
+                {error && (
+                  <div className="flex items-center gap-3 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-rose-400">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    <p className="text-sm">{error}</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Bottom nav bar */}
+          <div className="flex items-center justify-between gap-4 border-t border-white/5 px-8 py-5">
+            <button
+              onClick={() => (step === 0 ? router.back() : goTo(step - 1))}
+              disabled={isPending}
+              className="flex items-center gap-2 rounded-xl bg-white/5 border border-white/5 px-5 py-2.5 text-sm font-bold text-white hover:bg-white/10 transition-colors disabled:opacity-50"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              {step === 0 ? "Cancel" : "Back"}
+            </button>
+
+            {step < STEPS.length - 1 ? (
+              <button
+                onClick={() => goTo(step + 1)}
+                disabled={!canAdvance() || isPending}
+                className="flex items-center gap-2 rounded-xl bg-slate-50 px-5 py-2.5 text-sm font-bold text-slate-950 hover:bg-white transition-colors disabled:opacity-40"
+              >
+                Continue
+                <ChevronRight className="h-4 w-4 text-teal-600" />
+              </button>
+            ) : (
+              <button
+                onClick={handleSubmit}
+                disabled={isPending}
+                className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 px-5 py-2.5 text-sm font-bold text-slate-950 hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Creating…
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="h-4 w-4" />
+                    Confirm &amp; Save
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

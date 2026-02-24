@@ -30,7 +30,7 @@ const vaultLinks = [
   { label: "All Items", href: "/dashboard/items", icon: List, exact: false },
   {
     label: "Timeline",
-    href: "/dashboard/items?filter=timeline",
+    href: "/dashboard/timeline",
     icon: CalendarDays,
     exact: false,
   },
