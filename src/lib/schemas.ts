@@ -1,18 +1,50 @@
 import { z } from "zod/v4";
 
+// ── Item Type DTOs ──────────────────────────────────────────
+
+export const fieldConfigSchema = z.object({
+  key: z.string(),
+  label: z.string(),
+  type: z.enum(["text", "date", "number", "select", "textarea"]),
+  required: z.boolean().default(false),
+  options: z.array(z.string()).optional(),
+});
+
+export type FieldConfig = z.infer<typeof fieldConfigSchema>;
+
+export const itemTypeCreateSchema = z.object({
+  name: z.string().min(1),
+  category: z.string().min(1),
+  itemClass: z.enum(["document", "subscription"]),
+  description: z.string().optional(),
+  icon: z.string().optional(),
+  fieldsConfig: z.array(fieldConfigSchema).default([]),
+  isActive: z.boolean().default(true),
+});
+
+export type ItemTypeCreateInput = z.infer<typeof itemTypeCreateSchema>;
+
 // ── Item DTOs ───────────────────────────────────────────────
 
 export const itemCreateSchema = z.object({
   name: z.string().min(1, "Name is required"),
   type: z.string().optional(),
+  category: z.string().optional(),
+  itemClass: z.enum(["document", "subscription"]).optional(),
+  itemTypeId: z.string().optional(),
+  expirationDate: z.string().datetime().optional(),
+  documentNumber: z.string().optional(),
+  renewalDate: z.string().datetime().optional(),
+  billingCycle: z.enum(["monthly", "yearly", "quarterly", "weekly"]).optional(),
+  price: z.number().min(0).optional(),
+  notes: z.string().optional(),
+  dynamicFields: z.record(z.string(), z.unknown()).optional(),
+  reminderDaysBefore: z.number().int().min(0).max(365).optional(),
 });
 
 export type ItemCreateInput = z.infer<typeof itemCreateSchema>;
 
-export const itemUpdateSchema = z.object({
-  name: z.string().min(1, "Name is required").optional(),
-  type: z.string().optional(),
-});
+export const itemUpdateSchema = itemCreateSchema.partial();
 
 export type ItemUpdateInput = z.infer<typeof itemUpdateSchema>;
 
