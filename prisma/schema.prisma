@@ -60,3 +60,17 @@ model ItemAttachment {
   @@index([itemId])
   @@index([fileId])
 }
+
+model ItemType {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  category     String
+  description  String?
+  icon         String?
+  fieldsConfig Json     @default("[]")
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([category])
+}
