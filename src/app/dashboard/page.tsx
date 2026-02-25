@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { currentUser } from "@clerk/nextjs/server";
-import { Plus, Layers, AlertTriangle, CalendarClock, XCircle, FileText, RefreshCw } from "lucide-react";
+import { Plus, Layers, AlertTriangle, CalendarClock, XCircle, FileText, RefreshCw, Info } from "lucide-react";
 
 import { requireUser, getOrCreateDbUser } from "@/server/auth";
 import { db } from "@/server/db";
 import { getItemStatus } from "@/lib/item-utils";
+import { cn } from "@/lib/utils";
 
 import { DashboardTopBar } from "@/components/layout/dashboard-top-bar";
 import { StatCard } from "@/components/dashboard/stat-card";
@@ -154,25 +155,22 @@ export default async function Dashboard() {
       <div className="relative z-10 space-y-8 pb-12 px-4 sm:px-6 lg:px-8 mt-6">
         {/* Greeting & CTA */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-white">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
               {greeting},{" "}
               <span className="bg-gradient-to-r from-teal-400 to-cyan-400 bg-clip-text text-transparent drop-shadow-sm">
                 {firstName ?? userName.split(" ")[0]}.
               </span>
             </h1>
-            <p className="mt-2 text-base text-slate-400">
+            <p className="text-base text-slate-400 font-medium">
               {totalItems === 0
                 ? "Your vault is empty. Add your first item to get started."
-                : `You have ${totalItems} item${totalItems !== 1 ? "s" : ""} in your vault.`}
+                : `You have ${totalItems} item${totalItems !== 1 ? "s" : ""} securely stored.`}
             </p>
-            {totalItems > 0 && (
-              <p className="mt-2 text-sm text-slate-500">{focusMessage}</p>
-            )}
           </div>
           <Link
             href="/dashboard/items/new"
-            className="group relative inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-slate-900 transition-all hover:bg-slate-100 hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+            className="group relative inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-white to-slate-100 px-6 py-3 text-sm font-bold text-slate-900 shadow-lg shadow-white/10 transition-all hover:scale-105 hover:shadow-xl hover:shadow-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
             aria-label="Add new item"
           >
             <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" aria-hidden="true" />
@@ -180,10 +178,48 @@ export default async function Dashboard() {
           </Link>
         </div>
 
+        {/* Alert Banner */}
+        {totalItems > 0 && (expired > 0 || expiringSoon > 0 || missingAttachments > 0) && (
+          <div className={cn(
+            "flex flex-col sm:flex-row sm:items-center gap-4 rounded-2xl border p-5 backdrop-blur-md animate-in slide-in-from-bottom-4 fade-in duration-500 shadow-xl",
+            expired > 0 
+              ? "border-rose-500/30 bg-rose-500/10 text-rose-200 shadow-rose-500/5" 
+              : expiringSoon > 0 
+                ? "border-amber-500/30 bg-amber-500/10 text-amber-200 shadow-amber-500/5"
+                : "border-indigo-500/30 bg-indigo-500/10 text-indigo-200 shadow-indigo-500/5"
+          )}>
+             <div className={cn(
+               "flex h-12 w-12 shrink-0 items-center justify-center rounded-full border",
+               expired > 0 ? "border-rose-500/30 bg-rose-500/20" : expiringSoon > 0 ? "border-amber-500/30 bg-amber-500/20" : "border-indigo-500/30 bg-indigo-500/20"
+             )}>
+                {expired > 0 || expiringSoon > 0 ? (
+                  <AlertTriangle className={cn("h-6 w-6", expired > 0 ? "text-rose-400" : "text-amber-400")} />
+                ) : (
+                  <Info className="h-6 w-6 text-indigo-400" />
+                )}
+             </div>
+             <div className="flex-1">
+               <p className="text-lg font-semibold text-white">
+                 {expired > 0 ? "Attention Required" : expiringSoon > 0 ? "Upcoming Expirations" : "Missing Information"}
+               </p>
+               <p className="mt-1 text-sm font-medium opacity-90">{focusMessage}</p>
+             </div>
+             <Link
+               href={expired > 0 ? "/dashboard/items?status=expired" : expiringSoon > 0 ? "/dashboard/items?status=expiring" : "/dashboard/items"}
+               className={cn(
+                 "mt-3 sm:mt-0 flex shrink-0 items-center justify-center rounded-xl px-5 py-2.5 text-sm font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900",
+                 expired > 0 ? "bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 focus-visible:ring-rose-500" : expiringSoon > 0 ? "bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 focus-visible:ring-amber-500" : "bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 focus-visible:ring-indigo-500"
+               )}
+             >
+               Review Now
+             </Link>
+          </div>
+        )}
+
         {/* 12-column bento grid */}
         <div className="grid grid-cols-12 gap-5 lg:gap-6">
           {/* Row 1: 6 stat cards */}
-          <div className="col-span-6 md:col-span-4 xl:col-span-2">
+          <div className="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-2">
             <StatCard
               label="Total Items"
               value={totalItems}
@@ -193,7 +229,7 @@ export default async function Dashboard() {
               href="/dashboard/items"
             />
           </div>
-          <div className="col-span-6 md:col-span-4 xl:col-span-2">
+          <div className="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-2">
             <StatCard
               label="Expiring Soon"
               value={expiringSoon}
@@ -203,7 +239,7 @@ export default async function Dashboard() {
               href="/dashboard/items?status=expiring"
             />
           </div>
-          <div className="col-span-6 md:col-span-4 xl:col-span-2">
+          <div className="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-2">
             <StatCard
               label="This Week"
               value={thisWeek}
@@ -213,7 +249,7 @@ export default async function Dashboard() {
               href="/dashboard/items?filter=timeline"
             />
           </div>
-          <div className="col-span-6 md:col-span-4 xl:col-span-2">
+          <div className="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-2">
             <StatCard
               label="Expired"
               value={expired}
@@ -224,7 +260,7 @@ export default async function Dashboard() {
               href="/dashboard/items?status=expired"
             />
           </div>
-          <div className="col-span-6 md:col-span-4 xl:col-span-2">
+          <div className="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-2">
             <StatCard
               label="Documents"
               value={documents}
@@ -234,7 +270,7 @@ export default async function Dashboard() {
               href="/dashboard/items?class=document"
             />
           </div>
-          <div className="col-span-6 md:col-span-4 xl:col-span-2">
+          <div className="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-2">
             <StatCard
               label="Subscriptions"
               value={subscriptions}
