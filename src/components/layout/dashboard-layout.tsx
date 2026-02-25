@@ -1,5 +1,9 @@
 import { currentUser } from "@clerk/nextjs/server";
 import { AppSidebar } from "@/components/layout/app-sidebar";
+import { DashboardTopBar } from "@/components/layout/dashboard-top-bar";
+import { db } from "@/server/db";
+import { getItemStatus } from "@/lib/item-utils";
+import { getOrCreateDbUser, requireUser } from "@/server/auth";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -13,6 +17,8 @@ function getInitials(firstName: string | null, lastName: string | null, email: s
 }
 
 export async function DashboardLayout({ children }: DashboardLayoutProps) {
+  const clerkUserId = await requireUser();
+  const dbUser = await getOrCreateDbUser(clerkUserId);
   const user = await currentUser();
 
   const userName =
@@ -28,6 +34,32 @@ export async function DashboardLayout({ children }: DashboardLayoutProps) {
   const userImageUrl = user?.imageUrl ?? null;
   const isPremium = user?.publicMetadata?.plan === "premium";
 
+  // Fetch upcoming items for notifications
+  const now = new Date();
+  const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  
+  const upcomingItems = await db.item.findMany({
+    where: {
+      ownerId: dbUser.id,
+      OR: [
+        { expirationDate: { gte: now, lte: thirtyDaysFromNow } },
+        { renewalDate: { gte: now, lte: thirtyDaysFromNow } },
+      ],
+    },
+    take: 8,
+  });
+
+  const notificationItems = upcomingItems.map((item) => {
+    const { urgency } = getItemStatus(item);
+    return {
+      id: item.id,
+      name: item.name,
+      expirationDate: item.expirationDate,
+      renewalDate: item.renewalDate,
+      urgency,
+    };
+  });
+
   return (
     <div className="min-h-screen bg-slate-950">
       {/* Fixed sidebar */}
@@ -39,11 +71,24 @@ export async function DashboardLayout({ children }: DashboardLayoutProps) {
         isPremium={isPremium}
       />
 
-      {/* Main content area (padded for sidebar on desktop) */}
-      <div className="lg:pl-64 flex flex-col min-h-screen">
-        {children}
+      {/* Main content area */}
+      <div className="lg:pl-[260px] flex flex-col min-h-screen">
+        {/* Global Top Bar */}
+        <DashboardTopBar
+          pageTitle="Remindes"
+          notificationItems={notificationItems}
+          userName={userName}
+          userEmail={userEmail}
+          userInitials={userInitials}
+          userImageUrl={userImageUrl}
+          isPremium={isPremium}
+        />
+        
+        {/* Page Content */}
+        <main className="flex-1">
+          {children}
+        </main>
       </div>
     </div>
   );
 }
-
