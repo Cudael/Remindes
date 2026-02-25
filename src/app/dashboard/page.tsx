@@ -7,23 +7,11 @@ import { db } from "@/server/db";
 import { getItemStatus } from "@/lib/item-utils";
 import { cn } from "@/lib/utils";
 
-import { DashboardTopBar } from "@/components/layout/dashboard-top-bar";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { RecentlyAddedPanel } from "@/components/dashboard/recently-added-panel";
 import { ActionRequiredPanel } from "@/components/dashboard/action-required-panel";
 import { CategoryDistributionPanel } from "@/components/dashboard/category-distribution-panel";
 import { UpcomingTimelinePanel } from "@/components/dashboard/upcoming-timeline-panel";
-
-function getInitials(
-  firstName: string | null,
-  lastName: string | null,
-  email: string | null
-): string {
-  if (firstName && lastName) return `${firstName[0]}${lastName[0]}`.toUpperCase();
-  if (firstName) return firstName.slice(0, 2).toUpperCase();
-  if (email) return email.slice(0, 2).toUpperCase();
-  return "U";
-}
 
 export default async function Dashboard() {
   const clerkUserId = await requireUser();
@@ -100,18 +88,6 @@ export default async function Dashboard() {
           ? "Some items are missing attachments. Upload files to keep records complete."
           : "Great job—your vault is healthy and up to date.";
 
-  // Notification items for the top bar bell
-  const notificationItems = upcomingItems.map((item) => {
-    const { urgency } = getItemStatus(item);
-    return {
-      id: item.id,
-      name: item.name,
-      expirationDate: item.expirationDate,
-      renewalDate: item.renewalDate,
-      urgency,
-    };
-  });
-
   // User display info
   const firstName = clerkUser?.firstName ?? null;
   const lastName = clerkUser?.lastName ?? null;
@@ -120,9 +96,6 @@ export default async function Dashboard() {
     firstName && lastName
       ? `${firstName} ${lastName}`
       : firstName ?? userEmail ?? "User";
-  const userInitials = getInitials(firstName, lastName, userEmail || null);
-  const userImageUrl = clerkUser?.imageUrl ?? null;
-  const isPremium = clerkUser?.publicMetadata?.plan === "premium";
 
   // Time-based greeting
   const hour = now.getHours();
@@ -131,16 +104,6 @@ export default async function Dashboard() {
 
   return (
     <>
-      <DashboardTopBar
-        pageTitle="Overview"
-        notificationItems={notificationItems}
-        userName={userName}
-        userEmail={userEmail}
-        userInitials={userInitials}
-        userImageUrl={userImageUrl}
-        isPremium={isPremium}
-      />
-
       {/* Ambient background grid */}
       <div
         className="fixed inset-0 z-0 pointer-events-none opacity-60"
