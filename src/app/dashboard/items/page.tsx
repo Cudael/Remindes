@@ -244,27 +244,44 @@ export default function ItemsPage() {
         <div className="absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-cyan-500/8 blur-3xl" />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-7xl px-4 py-8 space-y-6 sm:px-6">
+      <div className="relative z-10 mx-auto max-w-7xl px-4 py-8 space-y-8 sm:px-6">
 
-        {/* Top bar */}
-        <div className="flex items-center gap-3 flex-wrap">
+        {/* Page Header */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 border-b border-white/5 pb-6">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">Your Vault</h1>
+            <p className="text-base font-medium text-slate-400">
+              Manage and organize all your important documents and subscriptions.
+            </p>
+          </div>
+          <button
+            onClick={() => router.push("/dashboard/items/new")}
+            className="group relative inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-white to-slate-100 px-6 py-3 text-sm font-bold text-slate-900 shadow-lg shadow-white/10 transition-all hover:scale-105 hover:shadow-xl hover:shadow-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+          >
+            <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
+            Add New Item
+          </button>
+        </div>
+
+        {/* Action Bar */}
+        <div className="flex flex-col sm:flex-row items-center gap-4 w-full">
           {/* Search */}
-          <div className="relative flex-1 min-w-52">
+          <div className="relative w-full sm:w-96 shrink-0">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
             <input
               type="text"
-              placeholder="Search vault…"
+              placeholder="Search your vault…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-2xl border border-white/5 bg-slate-900/60 backdrop-blur-xl pl-10 pr-10 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-teal-500/40 focus:outline-none focus:ring-1 focus:ring-teal-500/20"
+              className="w-full rounded-2xl border border-white/5 bg-slate-900/60 backdrop-blur-xl pl-11 pr-10 py-3 text-sm font-medium text-white placeholder:text-slate-500 focus:border-teal-500/40 focus:outline-none focus:ring-1 focus:ring-teal-500/20 transition-all hover:bg-slate-900/80"
             />
             {searchQuery && (
               <button
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-500 hover:bg-white/10 hover:text-white transition-colors"
                 onClick={() => setSearchQuery("")}
                 aria-label="Clear search"
               >
-                <X className="h-4 w-4" />
+                <X className="h-3.5 w-3.5" />
               </button>
             )}
           </div>
@@ -272,36 +289,27 @@ export default function ItemsPage() {
           {/* Filter toggle */}
           <button
             onClick={() => setShowFilters((v) => !v)}
-            className={`relative flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-medium transition-all duration-150 ${
+            className={`relative flex w-full sm:w-auto items-center justify-center gap-2 rounded-2xl border px-5 py-3 text-sm font-semibold transition-all duration-200 ${
               showFilters || hasActiveFilters
-                ? "border-teal-500/30 bg-teal-500/10 text-teal-300"
-                : "border-white/5 bg-slate-900/60 text-slate-400 hover:text-white hover:border-white/10"
+                ? "border-teal-500/30 bg-teal-500/10 text-teal-300 shadow-md shadow-teal-500/10"
+                : "border-white/5 bg-slate-900/60 text-slate-400 hover:text-white hover:border-white/10 hover:bg-slate-900/80"
             }`}
           >
             <SlidersHorizontal className="h-4 w-4" />
             Filters
             {hasActiveFilters && (
-              <span className="relative flex h-2 w-2">
+              <span className="relative flex h-2 w-2 ml-1">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-teal-400 opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-teal-500" />
               </span>
             )}
           </button>
-
-          {/* New Item */}
-          <button
-            onClick={() => router.push("/dashboard/items/new")}
-            className="flex items-center gap-2 rounded-2xl bg-teal-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-teal-400 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            New Item
-          </button>
         </div>
 
         {/* Filter panel (slide-down) */}
         <div
-          className="overflow-hidden transition-all duration-200 ease-out"
-          style={{ maxHeight: showFilters ? "600px" : "0px" }}
+          className="overflow-hidden transition-all duration-300 ease-in-out"
+          style={{ maxHeight: showFilters ? "1200px" : "0px", opacity: showFilters ? 1 : 0 }}
         >
           <VaultFilterPanel
             activeCategory={activeCategory}
@@ -326,27 +334,31 @@ export default function ItemsPage() {
 
         {/* Item limit banner */}
         {atLimit && (
-          <div className="flex items-center gap-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-5 py-3.5">
-            <span className="relative flex h-2.5 w-2.5 shrink-0">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-rose-500" />
-            </span>
-            <div className="flex-1 text-sm text-rose-200">
-              <span className="font-semibold">Vault full.</span> You&apos;ve reached the {FREE_PLAN_LIMIT}-item limit on the free plan.
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 rounded-[1.5rem] border border-rose-500/30 bg-rose-500/10 px-6 py-4 backdrop-blur-md animate-in slide-in-from-bottom-2 fade-in">
+            <div className="flex items-center gap-3">
+              <span className="relative flex h-3 w-3 shrink-0">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
+                <span className="relative inline-flex h-3 w-3 rounded-full bg-rose-500" />
+              </span>
+              <div className="text-sm text-rose-200">
+                <span className="font-bold text-rose-100">Vault full.</span> You&apos;ve reached the {FREE_PLAN_LIMIT}-item limit on the free plan.
+              </div>
             </div>
-            <button className="shrink-0 rounded-xl bg-rose-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-400 transition-colors">
+            <button className="sm:ml-auto w-full sm:w-auto shrink-0 rounded-xl bg-rose-500 px-5 py-2 text-xs font-bold text-white hover:bg-rose-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950">
               Upgrade to Pro
             </button>
           </div>
         )}
 
         {nearLimit && (
-          <div className="flex items-center gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-5 py-3.5">
-            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400" />
-            <p className="flex-1 text-sm text-amber-200">
-              <span className="font-semibold">{totalItems}/{FREE_PLAN_LIMIT} items used.</span> Upgrade to Pro for unlimited items.
-            </p>
-            <button className="shrink-0 rounded-xl bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-400 transition-colors">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 rounded-[1.5rem] border border-amber-500/30 bg-amber-500/10 px-6 py-4 backdrop-blur-md animate-in slide-in-from-bottom-2 fade-in">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-5 w-5 shrink-0 text-amber-400" />
+              <p className="text-sm text-amber-200">
+                <span className="font-bold text-amber-100">{totalItems}/{FREE_PLAN_LIMIT} items used.</span> Upgrade to Pro for unlimited items.
+              </p>
+            </div>
+            <button className="sm:ml-auto w-full sm:w-auto shrink-0 rounded-xl bg-amber-500 px-5 py-2 text-xs font-bold text-white hover:bg-amber-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950">
               Upgrade to Pro
             </button>
           </div>
@@ -354,8 +366,8 @@ export default function ItemsPage() {
 
         {/* Loading */}
         {isPending && (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-teal-500" />
+          <div className="flex items-center justify-center py-24">
+            <Loader2 className="h-8 w-8 animate-spin text-teal-500" />
           </div>
         )}
 
@@ -367,7 +379,7 @@ export default function ItemsPage() {
               onClearFilters={handleClearFilters}
             />
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 animate-in slide-in-from-bottom-4 fade-in duration-700">
               {filteredItems.map((item) => (
                 <VaultItemCard
                   key={item.id}
@@ -381,10 +393,12 @@ export default function ItemsPage() {
 
         {/* Item count footer */}
         {!isPending && filteredItems.length > 0 && (
-          <p className="text-center text-xs text-slate-600">
-            {filteredItems.length} item{filteredItems.length !== 1 ? "s" : ""}
-            {stats ? ` · ${stats.total} total in vault` : ""}
-          </p>
+          <div className="flex justify-center pt-8">
+            <p className="rounded-full border border-white/5 bg-slate-900/50 px-4 py-1.5 text-xs font-medium text-slate-500 backdrop-blur-md">
+              Showing {filteredItems.length} item{filteredItems.length !== 1 ? "s" : ""}
+              {stats && filteredItems.length !== stats.total ? ` out of ${stats.total} total` : ""}
+            </p>
+          </div>
         )}
       </div>
 
@@ -405,4 +419,3 @@ export default function ItemsPage() {
     </div>
   );
 }
-
