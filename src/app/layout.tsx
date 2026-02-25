@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
-import { PageTransition } from "@/components/page-transition";
 
 export const metadata: Metadata = {
   title: "Remindes | Personal Reminder & Vault",
@@ -19,14 +18,14 @@ export default function RootLayout({
   // between the landing page and dashboard are seamless and don't flash white.
   const bodyContent = (
     <body className="min-h-screen bg-slate-950 text-slate-50 antialiased selection:bg-teal-500/30 selection:text-teal-200">
-      <PageTransition>{children}</PageTransition>
+      {children}
     </body>
   );
 
   // Fallback if the Clerk key is missing locally
   if (!clerkKey) {
     return (
-      <html lang="en" className="dark" style={{ viewTransitionName: 'root' }}>
+      <html lang="en" className="dark">
         {bodyContent}
       </html>
     );
@@ -34,7 +33,7 @@ export default function RootLayout({
 
   return (
     <ClerkProvider>
-      <html lang="en" className="dark" style={{ viewTransitionName: 'root' }}>
+      <html lang="en" className="dark">
         {bodyContent}
       </html>
     </ClerkProvider>
