@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useClerk } from "@clerk/nextjs";
@@ -75,7 +76,7 @@ function NavLink({
   );
 }
 
-export function AppSidebar({
+export const AppSidebar = memo(function AppSidebar({
   userName,
   userEmail,
   userInitials,
@@ -207,4 +208,4 @@ export function AppSidebar({
       </div>
     </aside>
   );
-}
+});
