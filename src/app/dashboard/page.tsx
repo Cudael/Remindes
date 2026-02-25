@@ -152,7 +152,8 @@ export default async function Dashboard() {
         aria-hidden="true"
       />
 
-      <div className="relative z-10 space-y-8 pb-12 px-4 sm:px-6 lg:px-8 mt-6">
+      {/* Centered Main Content Container - Restricted Width */}
+      <div className="relative z-10 mx-auto max-w-6xl w-full space-y-8 pb-12 px-4 sm:px-6 lg:px-8 mt-6">
         {/* Greeting & CTA */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
           <div className="space-y-1">
