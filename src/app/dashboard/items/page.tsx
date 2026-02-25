@@ -244,7 +244,8 @@ export default function ItemsPage() {
         <div className="absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-cyan-500/8 blur-3xl" />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-7xl px-4 py-8 space-y-8 sm:px-6">
+      {/* Restrained container for the main content */}
+      <div className="relative z-10 mx-auto max-w-6xl w-full px-4 py-8 space-y-8 sm:px-6">
 
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 border-b border-white/5 pb-6">
