@@ -150,7 +150,7 @@ export default function EditItemPage() {
       setSuccess(true);
       setTimeout(() => {
         router.push(`/dashboard/items/${id}`);
-      }, 1500);
+      }, 800);
     });
   }
 

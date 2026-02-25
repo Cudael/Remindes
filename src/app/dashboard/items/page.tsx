@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, Search, SlidersHorizontal, AlertTriangle, Loader2, X } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
@@ -119,6 +119,20 @@ export default function ItemsPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const initializedFromUrl = useRef(false);
 
+  // Debounced search value to avoid firing API calls on every keystroke
+  const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
+  }, [searchQuery]);
+
   // Read URL params on first mount only
   useEffect(() => {
     if (initializedFromUrl.current) return;
@@ -140,31 +154,34 @@ export default function ItemsPage() {
     const params = new URLSearchParams();
     if (activeStatFilter !== "all") params.set("filter", activeStatFilter);
     if (activeCategory) params.set("category", activeCategory);
-    if (searchQuery) params.set("search", searchQuery);
+    if (debouncedSearch) params.set("search", debouncedSearch);
     const qs = params.toString();
     router.replace(`/dashboard/items${qs ? `?${qs}` : ""}`, { scroll: false });
-  }, [activeStatFilter, activeCategory, searchQuery, router]);
+  }, [activeStatFilter, activeCategory, debouncedSearch, router]);
 
   const loadData = useCallback(() => {
     const params: Record<string, string> = {};
     if (activeCategory) params.category = activeCategory;
     const apiStatus = statFilterToApiStatus(activeStatFilter);
     if (apiStatus) params.status = apiStatus;
-    if (searchQuery) params.search = searchQuery;
+    if (debouncedSearch) params.search = debouncedSearch;
 
     startTransition(async () => {
+      // Fetch filtered items, stats, and categories in parallel
+      // Stats already contains counts, so no need for a separate unfiltered fetch
       const [itemsData, statsData, categoriesData, allItemsData] = await Promise.all([
         fetchItems(params),
         fetchStats(),
         fetchCategories(),
-        fetchItems(), // unfiltered for counts
+        // Only fetch unfiltered items if we have active filters, otherwise reuse filtered results
+        (activeCategory || apiStatus || debouncedSearch) ? fetchItems() : Promise.resolve(null),
       ]);
       setItems(itemsData);
       setStats(statsData);
       setCategories(categoriesData);
-      setAllItems(allItemsData);
+      setAllItems(allItemsData ?? itemsData);
     });
-  }, [activeCategory, activeStatFilter, searchQuery]);
+  }, [activeCategory, activeStatFilter, debouncedSearch]);
 
   useEffect(() => {
     loadData();
@@ -182,17 +199,17 @@ export default function ItemsPage() {
     activeStatFilter !== "all" || !!activeCategory || !!searchQuery;
 
   // Category filters with counts from unfiltered items
-  const categoryFilters: CategoryFilter[] = categories.map((cat) => ({
+  const categoryFilters: CategoryFilter[] = useMemo(() => categories.map((cat) => ({
     label: cat,
     value: cat,
     count: allItems.filter((i) => (i.category ?? i.itemType?.category ?? "Other") === cat).length,
-  }));
+  })), [categories, allItems]);
 
   // Insights data
-  const expiredCount = allItems.filter((i) => getItemStatus(i).status === "expired").length;
-  const expiringCount = allItems.filter((i) => getItemStatus(i).status === "expiring").length;
-  const documentsCount = allItems.filter((i) => i.itemClass !== "subscription").length;
-  const subscriptionsCount = allItems.filter((i) => i.itemClass === "subscription").length;
+  const expiredCount = useMemo(() => allItems.filter((i) => getItemStatus(i).status === "expired").length, [allItems]);
+  const expiringCount = useMemo(() => allItems.filter((i) => getItemStatus(i).status === "expiring").length, [allItems]);
+  const documentsCount = useMemo(() => allItems.filter((i) => i.itemClass !== "subscription").length, [allItems]);
+  const subscriptionsCount = useMemo(() => allItems.filter((i) => i.itemClass === "subscription").length, [allItems]);
 
   function handleStatFilter(key: string) {
     setActiveStatFilter(key as StatFilterValue);
