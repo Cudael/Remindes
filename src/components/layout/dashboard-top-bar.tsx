@@ -116,7 +116,7 @@ export function DashboardTopBar({
           </button>
 
           {notifOpen && (
-            <div className="absolute right-0 top-full mt-2 w-80 rounded-2xl border border-white/10 bg-slate-900/95 backdrop-blur-xl shadow-xl z-50">
+            <div className="absolute right-0 top-full mt-2 w-80 rounded-2xl border border-white/10 bg-slate-900/95 backdrop-blur-xl shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
               <div className="border-b border-white/5 px-4 py-3">
                 <p className="text-sm font-semibold text-white">Notifications</p>
                 {hasNotifications && (
@@ -139,12 +139,12 @@ export function DashboardTopBar({
                         <li key={item.id}>
                           <Link
                             href={`/dashboard/items/${item.id}`}
-                            className="flex items-start gap-3 px-4 py-3 hover:bg-white/5 transition-colors"
+                            className="flex items-start gap-3 px-4 py-3 hover:bg-white/5 transition-colors focus-visible:outline-none focus-visible:bg-white/5"
                             onClick={() => setNotifOpen(false)}
                           >
                             <div
                               className={cn(
-                                "mt-0.5 shrink-0 rounded-full p-1",
+                                "mt-0.5 shrink-0 rounded-full p-1.5",
                                 item.urgency === "high"
                                   ? "bg-rose-500/20"
                                   : "bg-orange-500/20"
@@ -152,7 +152,7 @@ export function DashboardTopBar({
                             >
                               <AlertTriangle
                                 className={cn(
-                                  "h-3 w-3",
+                                  "h-3.5 w-3.5",
                                   item.urgency === "high"
                                     ? "text-rose-400"
                                     : "text-orange-400"
@@ -164,7 +164,7 @@ export function DashboardTopBar({
                               <p className="truncate text-sm font-medium text-white">
                                 {item.name}
                               </p>
-                              <p className="flex items-center gap-1 text-xs text-slate-400 mt-0.5">
+                              <p className="flex items-center gap-1.5 text-xs text-slate-400 mt-1">
                                 <Clock className="h-3 w-3" aria-hidden="true" />
                                 {formatRelativeDate(date)}
                               </p>
@@ -201,14 +201,14 @@ export function DashboardTopBar({
                 <span className="text-[10px] font-semibold text-white">{userInitials}</span>
               </div>
             )}
-            <span className="hidden sm:block max-w-[100px] truncate text-sm text-slate-300">
+            <span className="hidden sm:block max-w-[100px] truncate text-sm font-medium text-slate-300">
               {userName}
             </span>
             <ChevronDown className="h-3.5 w-3.5 text-slate-400 shrink-0" aria-hidden="true" />
           </button>
 
           {avatarOpen && (
-            <div className="absolute right-0 top-full mt-2 w-52 rounded-2xl border border-white/10 bg-slate-900/95 backdrop-blur-xl shadow-xl z-50">
+            <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl border border-white/10 bg-slate-900/95 backdrop-blur-xl shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
               <div className="border-b border-white/5 px-4 py-3">
                 <p className="truncate text-sm font-medium text-white">{userName}</p>
                 <p className="truncate text-xs text-slate-500">{userEmail}</p>
@@ -222,7 +222,7 @@ export function DashboardTopBar({
                   <Link
                     key={href}
                     href={href}
-                    className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                    className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors focus-visible:outline-none focus-visible:bg-white/5"
                     onClick={() => setAvatarOpen(false)}
                   >
                     <Icon className="h-4 w-4" aria-hidden="true" />
@@ -233,7 +233,7 @@ export function DashboardTopBar({
               <div className="border-t border-white/5 p-1.5">
                 <button
                   onClick={() => signOut(() => router.push("/"))}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-rose-400 hover:bg-rose-500/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium text-rose-400 hover:bg-rose-500/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
                   aria-label="Secure sign out"
                 >
                   <LogOut className="h-4 w-4" aria-hidden="true" />
