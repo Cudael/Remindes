@@ -1,5 +1,5 @@
 import { currentUser } from "@clerk/nextjs/server";
-import { AppSidebar } from "@/components/layout/app-sidebar";
+import { SidebarWrapper } from "@/components/layout/sidebar-wrapper";
 import { DashboardTopBar } from "@/components/layout/dashboard-top-bar";
 import { PageContentWrapper } from "@/components/layout/page-content-wrapper";
 import { db } from "@/server/db";
@@ -64,7 +64,7 @@ export async function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="min-h-screen bg-slate-950">
       {/* Fixed sidebar */}
-      <AppSidebar
+      <SidebarWrapper
         userName={userName}
         userEmail={userEmail}
         userInitials={userInitials}
