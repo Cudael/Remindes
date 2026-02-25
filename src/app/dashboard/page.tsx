@@ -90,6 +90,15 @@ export default async function Dashboard() {
   const subscriptions = items.filter((item) => item.itemClass === "subscription").length;
   const missingAttachments = items.filter((item) => item._count.attachments === 0).length;
 
+  const focusMessage =
+    expired > 0
+      ? "You have expired items that need immediate attention."
+      : expiringSoon > 0
+        ? "You have items expiring soon—review them before deadlines hit."
+        : missingAttachments > 0
+          ? "Some items are missing attachments. Upload files to keep records complete."
+          : "Great job—your vault is healthy and up to date.";
+
   // Notification items for the top bar bell
   const notificationItems = upcomingItems.map((item) => {
     const { urgency } = getItemStatus(item);
@@ -157,6 +166,9 @@ export default async function Dashboard() {
                 ? "Your vault is empty. Add your first item to get started."
                 : `You have ${totalItems} item${totalItems !== 1 ? "s" : ""} in your vault.`}
             </p>
+            {totalItems > 0 && (
+              <p className="mt-2 text-sm text-slate-500">{focusMessage}</p>
+            )}
           </div>
           <Link
             href="/dashboard/items/new"

@@ -29,7 +29,11 @@ export function CategoryDistributionPanel({ items }: CategoryDistributionPanelPr
   const rows = CATEGORIES.map((cat) => ({
     ...cat,
     count: counts.get(cat.key) ?? 0,
-  })).filter((r) => r.count > 0);
+  }))
+    .filter((r) => r.count > 0)
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+
+  const totalCount = rows.reduce((sum, row) => sum + row.count, 0);
 
   return (
     <div className="h-full rounded-3xl bg-slate-900/60 backdrop-blur-xl border border-white/5 p-6 flex flex-col">
@@ -62,7 +66,9 @@ export function CategoryDistributionPanel({ items }: CategoryDistributionPanelPr
                       <span aria-hidden="true">{cat.emoji}</span>
                       {cat.label}
                     </span>
-                    <span className="text-xs font-medium text-slate-400">{cat.count}</span>
+                    <span className="text-xs font-medium text-slate-400">
+                      {cat.count} ({Math.round((cat.count / totalCount) * 100)}%)
+                    </span>
                   </div>
                   <div className="h-1.5 w-full rounded-full bg-slate-800 overflow-hidden">
                     <div
