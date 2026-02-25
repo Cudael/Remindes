@@ -94,7 +94,8 @@ export function ActionRequiredPanel({
   missingAttachments,
 }: ActionRequiredPanelProps) {
   const actions = buildActions(expired, expiringSoon, total, missingAttachments);
-  const allClear = expired === 0 && expiringSoon === 0 && total > 0;
+  const allClear =
+    expired === 0 && expiringSoon === 0 && missingAttachments === 0 && total > 0;
 
   return (
     <div className="relative h-full rounded-3xl bg-slate-900/60 backdrop-blur-xl border border-white/5 overflow-hidden flex flex-col">
