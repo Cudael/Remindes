@@ -1,6 +1,7 @@
 import { currentUser } from "@clerk/nextjs/server";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { DashboardTopBar } from "@/components/layout/dashboard-top-bar";
+import { PageContentWrapper } from "@/components/layout/page-content-wrapper";
 import { db } from "@/server/db";
 import { getItemStatus } from "@/lib/item-utils";
 import { getOrCreateDbUser, requireUser } from "@/server/auth";
@@ -84,9 +85,11 @@ export async function DashboardLayout({ children }: DashboardLayoutProps) {
           isPremium={isPremium}
         />
         
-        {/* Page Content */}
+        {/* Page Content - ONLY THIS ANIMATES */}
         <main className="flex-1">
-          {children}
+          <PageContentWrapper>
+            {children}
+          </PageContentWrapper>
         </main>
       </div>
     </div>
