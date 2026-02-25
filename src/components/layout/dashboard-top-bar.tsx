@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { memo, useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useClerk } from "@clerk/nextjs";
@@ -44,7 +44,7 @@ function formatRelativeDate(date: Date | null): string {
   return `In ${diff} day${diff !== 1 ? "s" : ""}`;
 }
 
-export function DashboardTopBar({
+export const DashboardTopBar = memo(function DashboardTopBar({
   pageTitle,
   notificationItems,
   userName,
@@ -254,4 +254,4 @@ export function DashboardTopBar({
       </div>
     </header>
   );
-}
+});
