@@ -26,42 +26,42 @@ function formatRelative(date: Date): string {
 }
 
 const categoryColors: Record<string, string> = {
-  Travel: "bg-blue-500/10 text-blue-400",
-  Identification: "bg-purple-500/10 text-purple-400",
-  Financial: "bg-emerald-500/10 text-emerald-400",
-  Insurance: "bg-orange-500/10 text-orange-400",
-  Subscriptions: "bg-teal-500/10 text-teal-400",
-  Legal: "bg-rose-500/10 text-rose-400",
-  Other: "bg-slate-500/10 text-slate-400",
+  Travel: "bg-blue-50 text-blue-700",
+  Identification: "bg-purple-50 text-purple-700",
+  Financial: "bg-emerald-50 text-emerald-700",
+  Insurance: "bg-orange-50 text-orange-700",
+  Subscriptions: "bg-teal-50 text-teal-700",
+  Legal: "bg-rose-50 text-rose-700",
+  Other: "bg-slate-100 text-slate-700",
 };
 
 export function RecentlyAddedPanel({ items }: RecentlyAddedPanelProps) {
   const recent = items.slice(0, 4);
 
   return (
-    <div className="h-full rounded-3xl bg-slate-900/60 backdrop-blur-xl border border-white/5 p-6 flex flex-col">
+    <div className="h-full rounded-xl bg-white border border-slate-200 p-6 shadow-sm flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-500/10 border border-slate-500/20">
-            <History className="h-4 w-4 text-slate-400" aria-hidden="true" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 border border-slate-200">
+            <History className="h-4 w-4 text-slate-600" aria-hidden="true" />
           </div>
-          <h3 className="text-sm font-semibold text-white">Recently Added</h3>
+          <h3 className="text-sm font-semibold text-slate-900">Recently Added</h3>
         </div>
         <Link
           href="/dashboard/items"
-          className="text-xs text-teal-400 hover:text-teal-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 rounded"
+          className="text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 rounded"
           aria-label="View all items"
         >
-          View All →
+          View All &rarr;
         </Link>
       </div>
 
       {/* Content */}
       {recent.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 py-8">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-800 border border-white/5">
-            <Package className="h-6 w-6 text-slate-500" aria-hidden="true" />
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-50 border border-slate-200">
+            <Package className="h-5 w-5 text-slate-400" aria-hidden="true" />
           </div>
           <p className="text-sm text-slate-500">No items yet</p>
         </div>
@@ -76,18 +76,18 @@ export function RecentlyAddedPanel({ items }: RecentlyAddedPanelProps) {
               <li key={item.id}>
                 <Link
                   href={`/dashboard/items/${item.id}`}
-                  className="group grid grid-cols-[2rem_1fr_1.25rem] items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-white/5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                  className="group grid grid-cols-[2.5rem_1fr_1.25rem] items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-slate-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
                   aria-label={`View ${item.name}`}
                 >
-                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-800 border border-white/5 shrink-0">
-                    <Icon className="h-3.5 w-3.5 text-slate-400" aria-hidden="true" />
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 border border-slate-200 shrink-0">
+                    <Icon className="h-4 w-4 text-slate-500" aria-hidden="true" />
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-slate-200">{item.name}</p>
+                    <p className="truncate text-sm font-medium text-slate-900 group-hover:text-blue-600 transition-colors">{item.name}</p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span
                         className={cn(
-                          "rounded-full px-2 py-0.5 text-[10px] font-medium",
+                          "rounded-md px-2 py-0.5 text-[10px] font-semibold",
                           badgeClass
                         )}
                       >
@@ -99,7 +99,7 @@ export function RecentlyAddedPanel({ items }: RecentlyAddedPanelProps) {
                     </div>
                   </div>
                   <ArrowUpRight
-                    className="h-4 w-4 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="h-4 w-4 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity"
                     aria-hidden="true"
                   />
                 </Link>
