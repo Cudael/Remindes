@@ -2,7 +2,7 @@ import Link from "next/link";
 import { type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type AccentColor = "teal" | "orange" | "amber" | "rose" | "emerald" | "indigo";
+type AccentColor = "slate" | "blue" | "red" | "teal" | "orange" | "amber" | "rose" | "emerald" | "indigo";
 
 interface StatCardProps {
   label: string;
@@ -16,61 +16,70 @@ interface StatCardProps {
 
 const colorMap: Record<
   AccentColor,
-  { bg: string; border: string; hoverBorder: string; text: string; ring: string; pulse: string; hoverShadow: string }
+  { bg: string; border: string; text: string; ring: string; pulse: string }
 > = {
+  slate: {
+    bg: "bg-slate-50",
+    border: "border-slate-100",
+    text: "text-slate-600",
+    ring: "ring-slate-400/20",
+    pulse: "bg-slate-500",
+  },
+  blue: {
+    bg: "bg-blue-50",
+    border: "border-blue-100",
+    text: "text-blue-600",
+    ring: "ring-blue-400/20",
+    pulse: "bg-blue-500",
+  },
+  red: {
+    bg: "bg-red-50",
+    border: "border-red-100",
+    text: "text-red-600",
+    ring: "ring-red-400/20",
+    pulse: "bg-red-500",
+  },
   teal: {
-    bg: "bg-teal-500/10",
-    border: "border-teal-500/20",
-    hoverBorder: "group-hover:border-teal-500/40",
-    text: "text-teal-400",
-    ring: "ring-teal-400/40",
+    bg: "bg-teal-50",
+    border: "border-teal-100",
+    text: "text-teal-600",
+    ring: "ring-teal-400/20",
     pulse: "bg-teal-500",
-    hoverShadow: "group-hover:shadow-teal-500/10",
   },
   orange: {
-    bg: "bg-orange-500/10",
-    border: "border-orange-500/20",
-    hoverBorder: "group-hover:border-orange-500/40",
-    text: "text-orange-400",
-    ring: "ring-orange-400/40",
+    bg: "bg-orange-50",
+    border: "border-orange-100",
+    text: "text-orange-600",
+    ring: "ring-orange-400/20",
     pulse: "bg-orange-500",
-    hoverShadow: "group-hover:shadow-orange-500/10",
   },
   amber: {
-    bg: "bg-amber-500/10",
-    border: "border-amber-500/20",
-    hoverBorder: "group-hover:border-amber-500/40",
-    text: "text-amber-400",
-    ring: "ring-amber-400/40",
+    bg: "bg-amber-50",
+    border: "border-amber-100",
+    text: "text-amber-600",
+    ring: "ring-amber-400/20",
     pulse: "bg-amber-500",
-    hoverShadow: "group-hover:shadow-amber-500/10",
   },
   rose: {
-    bg: "bg-rose-500/10",
-    border: "border-rose-500/20",
-    hoverBorder: "group-hover:border-rose-500/40",
-    text: "text-rose-400",
-    ring: "ring-rose-400/40",
+    bg: "bg-rose-50",
+    border: "border-rose-100",
+    text: "text-rose-600",
+    ring: "ring-rose-400/20",
     pulse: "bg-rose-500",
-    hoverShadow: "group-hover:shadow-rose-500/10",
   },
   emerald: {
-    bg: "bg-emerald-500/10",
-    border: "border-emerald-500/20",
-    hoverBorder: "group-hover:border-emerald-500/40",
-    text: "text-emerald-400",
-    ring: "ring-emerald-400/40",
+    bg: "bg-emerald-50",
+    border: "border-emerald-100",
+    text: "text-emerald-600",
+    ring: "ring-emerald-400/20",
     pulse: "bg-emerald-500",
-    hoverShadow: "group-hover:shadow-emerald-500/10",
   },
   indigo: {
-    bg: "bg-indigo-500/10",
-    border: "border-indigo-500/20",
-    hoverBorder: "group-hover:border-indigo-500/40",
-    text: "text-indigo-400",
-    ring: "ring-indigo-400/40",
+    bg: "bg-indigo-50",
+    border: "border-indigo-100",
+    text: "text-indigo-600",
+    ring: "ring-indigo-400/20",
     pulse: "bg-indigo-500",
-    hoverShadow: "group-hover:shadow-indigo-500/10",
   },
 };
 
@@ -88,34 +97,33 @@ export function StatCard({
   const cardContent = (
     <div
       className={cn(
-        "relative flex h-full flex-col gap-4 rounded-3xl border border-white/5 bg-slate-900/60 p-6 backdrop-blur-xl transition-all duration-300",
-        href && cn("group-hover:bg-slate-900/80 group-hover:shadow-xl group-hover:-translate-y-1", colors.hoverBorder, colors.hoverShadow)
+        "relative flex h-full flex-col gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-200",
+        href && "group-hover:border-slate-300 group-hover:shadow-md group-hover:-translate-y-0.5"
       )}
     >
       <div className="flex items-start justify-between">
         <div
           className={cn(
-            "flex h-12 w-12 items-center justify-center rounded-2xl border transition-transform duration-300",
+            "flex h-10 w-10 items-center justify-center rounded-lg border",
             colors.bg,
             colors.border,
-            href && "group-hover:scale-110 group-hover:rotate-3",
-            isAlert && `ring-2 ring-offset-2 ring-offset-slate-950 ${colors.ring}`
+            isAlert && `ring-2 ring-offset-2 ring-offset-white ${colors.ring}`
           )}
         >
-          <Icon className={cn("h-6 w-6", colors.text)} aria-hidden="true" />
+          <Icon className={cn("h-5 w-5", colors.text)} aria-hidden="true" />
         </div>
         {isAlert && (
-          <span className="relative flex h-3 w-3">
+          <span className="relative flex h-2.5 w-2.5 mt-1 mr-1">
             <span className={cn("absolute inline-flex h-full w-full animate-ping rounded-full opacity-75", colors.pulse)} />
-            <span className={cn("relative inline-flex h-3 w-3 rounded-full", colors.pulse)} />
+            <span className={cn("relative inline-flex h-2.5 w-2.5 rounded-full", colors.pulse)} />
           </span>
         )}
       </div>
-      <div className="mt-auto pt-4">
-        <p className="text-4xl font-extrabold tracking-tight text-white">{value}</p>
-        <p className="mt-2 text-sm font-semibold text-slate-400">{label}</p>
+      <div className="mt-auto pt-2">
+        <p className="text-3xl font-bold tracking-tight text-slate-900">{value}</p>
+        <p className="mt-1 text-sm font-medium text-slate-500">{label}</p>
         {activitySummary && (
-          <p className="mt-1 text-xs font-medium text-slate-500 line-clamp-1">{activitySummary}</p>
+          <p className="mt-1 text-xs text-slate-400 line-clamp-1">{activitySummary}</p>
         )}
       </div>
     </div>
@@ -125,7 +133,7 @@ export function StatCard({
     return (
       <Link 
         href={href} 
-        className="group block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 rounded-3xl" 
+        className="group block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 rounded-xl" 
         aria-label={`${label}: ${value}`}
       >
         {cardContent}
