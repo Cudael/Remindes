@@ -103,31 +103,66 @@ export default async function Dashboard() {
   const greeting =
     hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
+  // Determine Alert Banner State cleanly
+  const hasAlerts = totalItems > 0 && (expired > 0 || expiringSoon > 0 || missingAttachments > 0);
+  const alertType = expired > 0 ? "error" : expiringSoon > 0 ? "warning" : "info";
+
+  const alertStyles = {
+    error: {
+      wrapper: "bg-red-50 border-red-100",
+      iconWrapper: "bg-white border-red-100 shadow-sm",
+      icon: <AlertTriangle className="h-5 w-5 text-red-600" />,
+      title: "text-red-900",
+      titleText: "Attention Required",
+      text: "text-red-700",
+      button: "bg-white border-red-200 text-red-700 hover:bg-red-50 focus-visible:ring-red-500 shadow-sm",
+      link: "/dashboard/items?status=expired"
+    },
+    warning: {
+      wrapper: "bg-amber-50 border-amber-100",
+      iconWrapper: "bg-white border-amber-100 shadow-sm",
+      icon: <AlertTriangle className="h-5 w-5 text-amber-600" />,
+      title: "text-amber-900",
+      titleText: "Upcoming Expirations",
+      text: "text-amber-700",
+      button: "bg-white border-amber-200 text-amber-700 hover:bg-amber-50 focus-visible:ring-amber-500 shadow-sm",
+      link: "/dashboard/items?status=expiring"
+    },
+    info: {
+      wrapper: "bg-blue-50 border-blue-100",
+      iconWrapper: "bg-white border-blue-100 shadow-sm",
+      icon: <Info className="h-5 w-5 text-blue-600" />,
+      title: "text-blue-900",
+      titleText: "Missing Information",
+      text: "text-blue-700",
+      button: "bg-white border-blue-200 text-blue-700 hover:bg-blue-50 focus-visible:ring-blue-500 shadow-sm",
+      link: "/dashboard/items"
+    }
+  }[alertType];
+
   return (
-    <>
-      {/* Ambient background grid */}
+    <div className="min-h-screen bg-slate-50/50 text-slate-900">
+      {/* Subtle background grid for texture */}
       <div
-        className="fixed inset-0 z-0 pointer-events-none opacity-60"
+        className="fixed inset-0 z-0 pointer-events-none"
         style={{
           backgroundImage:
-            "linear-gradient(to right, rgba(148,163,184,0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(148,163,184,0.05) 1px, transparent 1px)",
+            "linear-gradient(to right, rgba(15, 23, 42, 0.04) 1px, transparent 1px), linear-gradient(to bottom, rgba(15, 23, 42, 0.04) 1px, transparent 1px)",
           backgroundSize: "48px 48px",
         }}
         aria-hidden="true"
       />
 
-      {/* Centered Main Content Container - Restricted Width */}
-      <div className="relative z-10 mx-auto max-w-6xl w-full space-y-8 pb-12 px-4 sm:px-6 lg:px-8 mt-6">
-        {/* Greeting & CTA */}
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
-          <div className="space-y-1">
-            <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-              {greeting},{" "}
-              <span className="bg-gradient-to-r from-teal-400 to-cyan-400 bg-clip-text text-transparent drop-shadow-sm">
-                {firstName ?? userName.split(" ")[0]}.
-              </span>
+      {/* Main Content Container */}
+      <div className="relative z-10 mx-auto max-w-6xl w-full space-y-8 pb-12 px-4 sm:px-6 lg:px-8 pt-8">
+        
+        {/* Header Section */}
+        <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+              {greeting}, {firstName ?? userName.split(" ")[0]}
             </h1>
-            <p className="text-base text-slate-400 font-medium">
+            <p className="mt-1.5 text-sm text-slate-500">
               {totalItems === 0
                 ? "Your vault is empty. Add your first item to get started."
                 : `You have ${totalItems} item${totalItems !== 1 ? "s" : ""} securely stored.`}
@@ -135,45 +170,34 @@ export default async function Dashboard() {
           </div>
           <Link
             href="/dashboard/items/new"
-            className="group relative inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-white to-slate-100 px-6 py-3 text-sm font-bold text-slate-900 shadow-lg shadow-white/10 transition-all hover:scale-105 hover:shadow-xl hover:shadow-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50"
             aria-label="Add new item"
           >
-            <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" aria-hidden="true" />
+            <Plus className="h-4 w-4" aria-hidden="true" />
             Add New Item
           </Link>
-        </div>
+        </header>
 
         {/* Alert Banner */}
-        {totalItems > 0 && (expired > 0 || expiringSoon > 0 || missingAttachments > 0) && (
+        {hasAlerts && (
           <div className={cn(
-            "flex flex-col sm:flex-row sm:items-center gap-4 rounded-2xl border p-5 backdrop-blur-md animate-in slide-in-from-bottom-4 fade-in duration-500 shadow-xl",
-            expired > 0 
-              ? "border-rose-500/30 bg-rose-500/10 text-rose-200 shadow-rose-500/5" 
-              : expiringSoon > 0 
-                ? "border-amber-500/30 bg-amber-500/10 text-amber-200 shadow-amber-500/5"
-                : "border-indigo-500/30 bg-indigo-500/10 text-indigo-200 shadow-indigo-500/5"
+            "flex flex-col sm:flex-row sm:items-center gap-4 rounded-xl border p-4 animate-in slide-in-from-bottom-2 fade-in duration-500",
+            alertStyles.wrapper
           )}>
-             <div className={cn(
-               "flex h-12 w-12 shrink-0 items-center justify-center rounded-full border",
-               expired > 0 ? "border-rose-500/30 bg-rose-500/20" : expiringSoon > 0 ? "border-amber-500/30 bg-amber-500/20" : "border-indigo-500/30 bg-indigo-500/20"
-             )}>
-                {expired > 0 || expiringSoon > 0 ? (
-                  <AlertTriangle className={cn("h-6 w-6", expired > 0 ? "text-rose-400" : "text-amber-400")} />
-                ) : (
-                  <Info className="h-6 w-6 text-indigo-400" />
-                )}
+             <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full border", alertStyles.iconWrapper)}>
+                {alertStyles.icon}
              </div>
              <div className="flex-1">
-               <p className="text-lg font-semibold text-white">
-                 {expired > 0 ? "Attention Required" : expiringSoon > 0 ? "Upcoming Expirations" : "Missing Information"}
+               <p className={cn("text-sm font-semibold", alertStyles.title)}>
+                 {alertStyles.titleText}
                </p>
-               <p className="mt-1 text-sm font-medium opacity-90">{focusMessage}</p>
+               <p className={cn("mt-0.5 text-sm", alertStyles.text)}>{focusMessage}</p>
              </div>
              <Link
-               href={expired > 0 ? "/dashboard/items?status=expired" : expiringSoon > 0 ? "/dashboard/items?status=expiring" : "/dashboard/items"}
+               href={alertStyles.link}
                className={cn(
-                 "mt-3 sm:mt-0 flex shrink-0 items-center justify-center rounded-xl px-5 py-2.5 text-sm font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900",
-                 expired > 0 ? "bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 focus-visible:ring-rose-500" : expiringSoon > 0 ? "bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 focus-visible:ring-amber-500" : "bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 focus-visible:ring-indigo-500"
+                 "mt-3 sm:mt-0 flex shrink-0 items-center justify-center rounded-lg border px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50",
+                 alertStyles.button
                )}
              >
                Review Now
@@ -181,7 +205,7 @@ export default async function Dashboard() {
           </div>
         )}
 
-        {/* 12-column bento grid */}
+        {/* 12-column Bento Grid */}
         <div className="grid grid-cols-12 gap-5 lg:gap-6">
           {/* Row 1: 6 stat cards */}
           <div className="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-2">
@@ -189,7 +213,7 @@ export default async function Dashboard() {
               label="Total Items"
               value={totalItems}
               icon={Layers}
-              accentColor="teal"
+              accentColor="slate"
               activitySummary="Documents & subscriptions"
               href="/dashboard/items"
             />
@@ -209,7 +233,7 @@ export default async function Dashboard() {
               label="This Week"
               value={thisWeek}
               icon={CalendarClock}
-              accentColor="orange"
+              accentColor="blue"
               activitySummary="Next 7 days"
               href="/dashboard/items?filter=timeline"
             />
@@ -219,7 +243,7 @@ export default async function Dashboard() {
               label="Expired"
               value={expired}
               icon={XCircle}
-              accentColor="rose"
+              accentColor="red"
               isAlert={expired > 0}
               activitySummary="Need attention"
               href="/dashboard/items?status=expired"
@@ -271,6 +295,6 @@ export default async function Dashboard() {
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
