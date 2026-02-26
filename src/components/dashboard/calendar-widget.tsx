@@ -13,7 +13,7 @@ interface CalendarWidgetProps {
   today: Date;
 }
 
-const DAY_HEADERS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DAY_HEADERS = ["S", "M", "T", "W", "T", "F", "S"];
 
 const MONTH_NAMES = [
   "January",
@@ -30,9 +30,9 @@ const MONTH_NAMES = [
   "December",
 ];
 
-type DotColor = "rose" | "amber" | "teal";
+type DotColor = "red" | "amber" | "slate";
 
-const DOT_PRIORITY: Record<DotColor, number> = { rose: 0, amber: 1, teal: 2 };
+const DOT_PRIORITY: Record<DotColor, number> = { red: 0, amber: 1, slate: 2 };
 
 export function CalendarWidget({ items, today }: CalendarWidgetProps) {
   const year = today.getFullYear();
@@ -65,11 +65,11 @@ export function CalendarWidget({ items, today }: CalendarWidgetProps) {
 
       let color: DotColor;
       if (diff >= 0 && diff < sevenDaysMs) {
-        color = "rose";
+        color = "red";
       } else if (diff >= 0 && diff < thirtyDaysMs) {
         color = "amber";
       } else {
-        color = "teal";
+        color = "slate";
       }
 
       const existing = dotMap.get(day);
@@ -88,66 +88,78 @@ export function CalendarWidget({ items, today }: CalendarWidgetProps) {
   while (cells.length % 7 !== 0) cells.push(null);
 
   return (
-    <div className="h-full rounded-3xl bg-slate-900/60 backdrop-blur-xl border border-white/5 p-6 flex flex-col">
+    <div className="h-full rounded-xl bg-white border border-slate-200 p-6 shadow-sm flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-teal-500/10 border border-teal-500/20">
-          <CalendarDays className="h-4 w-4 text-teal-400" aria-hidden="true" />
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 border border-slate-200">
+          <CalendarDays className="h-4 w-4 text-slate-600" aria-hidden="true" />
         </div>
-        <h3 className="text-sm font-semibold text-white">
-          {MONTH_NAMES[month]} {year}
-        </h3>
+        <div className="flex-1 flex justify-between items-center">
+            <h3 className="text-sm font-semibold text-slate-900">Upcoming Schedule</h3>
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{MONTH_NAMES[month]} {year}</span>
+        </div>
       </div>
 
-      {/* Day-of-week headers */}
-      <div className="grid grid-cols-7 mb-1">
-        {DAY_HEADERS.map((d) => (
-          <div
-            key={d}
-            className="text-center text-[10px] font-medium text-slate-500 py-1"
-          >
-            {d}
-          </div>
-        ))}
-      </div>
+      {/* Calendar Grid */}
+      <div className="flex-1 flex flex-col">
+        {/* Day headers */}
+        <div className="grid grid-cols-7 gap-1 mb-2">
+          {DAY_HEADERS.map((h, i) => (
+            <div
+              key={i}
+              className="text-center text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+            >
+              {h}
+            </div>
+          ))}
+        </div>
 
-      {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-y-1 flex-1">
-        {cells.map((day, i) => {
-          if (day === null) {
-            return <div key={`pad-${i}`} aria-hidden="true" />;
-          }
+        {/* Calendar days */}
+        <div className="grid grid-cols-7 gap-1 flex-1">
+          {cells.map((day, idx) => {
+            if (day === null) {
+              return <div key={`pad-${idx}`} className="p-1" />;
+            }
+            const isToday = day === todayDate;
+            const dotColor = dotMap.get(day);
 
-          const isToday = day === todayDate;
-          const dotColor = dotMap.get(day);
-
-          return (
-            <div key={day} className="flex flex-col items-center gap-0.5 py-0.5">
-              <span
+            return (
+              <div
+                key={`day-${day}`}
                 className={cn(
-                  "flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium transition-colors",
-                  isToday
-                    ? "bg-teal-500/20 text-teal-300 ring-1 ring-teal-500/50"
-                    : "text-slate-400"
+                  "relative flex flex-col items-center justify-center rounded-lg p-1 min-h-[2.5rem]",
+                  isToday && "bg-blue-50 border border-blue-100"
                 )}
-                aria-current={isToday ? "date" : undefined}
               >
-                {day}
-              </span>
-              {dotColor !== undefined && (
                 <span
                   className={cn(
-                    "h-1 w-1 rounded-full",
-                    dotColor === "rose" && "bg-rose-400",
-                    dotColor === "amber" && "bg-amber-400",
-                    dotColor === "teal" && "bg-teal-400"
+                    "text-sm font-medium z-10",
+                    isToday ? "text-blue-700" : "text-slate-700"
                   )}
-                  aria-hidden="true"
-                />
-              )}
-            </div>
-          );
-        })}
+                >
+                  {day}
+                </span>
+
+                {/* Event Dot */}
+                {dotColor && (
+                  <span
+                    className={cn(
+                      "absolute bottom-1 h-1.5 w-1.5 rounded-full z-10",
+                      dotColor === "red" && "bg-red-500",
+                      dotColor === "amber" && "bg-amber-500",
+                      dotColor === "slate" && "bg-slate-400"
+                    )}
+                    aria-hidden="true"
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div className="mt-4 flex items-center justify-center gap-4 text-[10px] font-medium text-slate-500">
+          <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-red-500" /> &lt; 7 Days</div>
+          <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> &lt; 30 Days</div>
       </div>
     </div>
   );
