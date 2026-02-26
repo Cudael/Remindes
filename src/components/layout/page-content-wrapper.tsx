@@ -19,7 +19,9 @@ export function PageContentWrapper({ children }: { children: React.ReactNode }) 
     }, 150);
 
     return () => clearTimeout(timeout);
-  }, [pathname, children]);
+    // Only re-trigger animation on route change, not on every children re-render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   return (
     <div

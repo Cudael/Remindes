@@ -1,136 +1,54 @@
-"use client";
-
-import { useEffect, useState, useTransition } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { notFound } from "next/navigation";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ChevronLeft, Edit, Trash2, Calendar, Hash, DollarSign, FileText } from "lucide-react";
+import { Calendar, Hash, DollarSign, FileText } from "lucide-react";
 import { CategoryBadge } from "@/components/items/CategoryBadge";
 import { StatusIndicator } from "@/components/items/StatusIndicator";
+import { ItemDetailActions } from "@/components/items/ItemDetailActions";
 import { getItemStatus, formatCurrency, formatBillingCycle } from "@/lib/item-utils";
+import { requireUser, getOrCreateDbUser } from "@/server/auth";
+import { db } from "@/server/db";
 
-interface ItemType {
-  id: string;
-  name: string;
-  category: string;
-  icon?: string | null;
-  fieldsConfig: Array<{ key: string; label: string; type: string }>;
+function formatDate(d: Date | string | null | undefined) {
+  if (!d) return null;
+  return new Date(d).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 }
 
-interface Attachment {
-  id: string;
-  fileId: string;
-  file: { id: string; originalName: string; mimeType: string; size: number };
-  createdAt: string;
-}
+export default async function ItemDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const clerkUserId = await requireUser();
+  const user = await getOrCreateDbUser(clerkUserId);
 
-interface Item {
-  id: string;
-  name: string;
-  type?: string | null;
-  category?: string | null;
-  itemClass?: string | null;
-  itemTypeId?: string | null;
-  itemType?: ItemType | null;
-  expirationDate?: string | null;
-  renewalDate?: string | null;
-  documentNumber?: string | null;
-  billingCycle?: string | null;
-  price?: number | null;
-  notes?: string | null;
-  dynamicFields?: Record<string, unknown> | null;
-  reminderDaysBefore?: number | null;
-  createdAt: string;
-  updatedAt: string;
-  attachments: Attachment[];
-}
+  const item = await db.item.findUnique({
+    where: { id },
+    include: {
+      itemType: true,
+      attachments: { include: { file: true } },
+    },
+  });
 
-export default function ItemDetailPage() {
-  const router = useRouter();
-  const params = useParams();
-  const id = params?.id as string;
-
-  const [item, setItem] = useState<Item | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!id) return;
-    fetch(`/api/v1/items/${id}`)
-      .then((r) => r.json())
-      .then((json) => {
-        setItem(json.data ?? null);
-        setLoading(false);
-      })
-      .catch(() => {
-        setError("Failed to load item");
-        setLoading(false);
-      });
-  }, [id]);
-
-  function handleDelete() {
-    if (!confirm("Are you sure you want to delete this item?")) return;
-    startTransition(async () => {
-      const res = await fetch(`/api/v1/items/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        router.push("/dashboard/items");
-      } else {
-        setError("Failed to delete item");
-      }
-    });
-  }
-
-  if (loading) {
-    return (
-      <div className="container mx-auto max-w-2xl p-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 w-48 bg-muted rounded" />
-          <div className="h-32 bg-muted rounded-lg" />
-          <div className="h-48 bg-muted rounded-lg" />
-        </div>
-      </div>
-    );
-  }
-
-  if (!item) {
-    return (
-      <div className="container mx-auto max-w-2xl p-6 text-center">
-        <p className="text-muted-foreground">Item not found.</p>
-        <Button className="mt-4" onClick={() => router.push("/dashboard/items")}>
-          Back to Items
-        </Button>
-      </div>
-    );
+  if (!item || item.ownerId !== user.id) {
+    notFound();
   }
 
   const { status, daysLeft } = getItemStatus(item);
   const category = item.category ?? item.itemType?.category ?? "Other";
   const icon = item.itemType?.icon ?? undefined;
-  const fieldsConfig = item.itemType?.fieldsConfig ?? [];
+  const fieldsConfig = (item.itemType?.fieldsConfig as Array<{ key: string; label: string; type: string }>) ?? [];
   const dynamicFields = (item.dynamicFields as Record<string, unknown> | null) ?? {};
-
-  function formatDate(d: string | null | undefined) {
-    if (!d) return null;
-    return new Date(d).toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  }
 
   return (
     <div className="container mx-auto max-w-2xl p-6 space-y-6">
-      {/* Header */}
+      {/* Header with client-side actions */}
       <div className="flex items-start gap-3">
-        <Button variant="ghost" size="icon" onClick={() => router.push("/dashboard/items")}>
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <CategoryBadge category={category} icon={icon} />
@@ -143,30 +61,9 @@ export default function ItemDetailPage() {
             </p>
           )}
         </div>
-        <div className="flex gap-2 shrink-0">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => router.push(`/dashboard/items/${id}/edit`)}
-          >
-            <Edit className="mr-1 h-4 w-4" />
-            Edit
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={handleDelete}
-            disabled={isPending}
-          >
-            <Trash2 className="mr-1 h-4 w-4" />
-            Delete
-          </Button>
-        </div>
       </div>
 
-      {error && (
-        <p className="text-sm text-destructive">{error}</p>
-      )}
+      <ItemDetailActions itemId={id} />
 
       {/* Key Info */}
       <Card>
