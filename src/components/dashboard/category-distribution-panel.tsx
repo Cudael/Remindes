@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LayoutGrid } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface CategoryDistributionPanelProps {
   items: Array<{ category: string | null; itemClass: string | null }>;
@@ -33,16 +34,14 @@ export function CategoryDistributionPanel({ items }: CategoryDistributionPanelPr
     .filter((r) => r.count > 0)
     .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
 
-  const totalCount = rows.reduce((sum, row) => sum + row.count, 0);
-
   return (
-    <div className="h-full rounded-3xl bg-slate-900/60 backdrop-blur-xl border border-white/5 p-6 flex flex-col">
+    <div className="h-full rounded-xl bg-white border border-slate-200 p-6 shadow-sm flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-500/10 border border-indigo-500/20">
-          <LayoutGrid className="h-4 w-4 text-indigo-400" aria-hidden="true" />
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 border border-blue-100">
+          <LayoutGrid className="h-4 w-4 text-blue-600" aria-hidden="true" />
         </div>
-        <h3 className="text-sm font-semibold text-white">Vault Distribution</h3>
+        <h3 className="text-sm font-semibold text-slate-900">Vault Distribution</h3>
       </div>
 
       {/* Rows */}
@@ -51,33 +50,32 @@ export function CategoryDistributionPanel({ items }: CategoryDistributionPanelPr
           <p className="text-sm text-slate-500">No items to display</p>
         </div>
       ) : (
-        <ul className="flex-1 space-y-3">
+        <ul className="flex-1 space-y-4">
           {rows.map((cat) => {
             const pct = (cat.count / maxCount) * 100;
             return (
               <li key={cat.key}>
                 <Link
                   href={`/dashboard/items?category=${encodeURIComponent(cat.key)}`}
-                  className="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 rounded-lg"
+                  className="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 rounded-lg"
                   aria-label={`View ${cat.label} items: ${cat.count}`}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="flex items-center gap-1.5 text-sm text-slate-300 group-hover:text-white transition-colors">
-                      <span aria-hidden="true">{cat.emoji}</span>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="flex items-center gap-2 text-sm font-medium text-slate-700 group-hover:text-blue-600 transition-colors">
+                      <span>{cat.emoji}</span>
                       {cat.label}
                     </span>
-                    <span className="text-xs font-medium text-slate-400">
-                      {cat.count} ({Math.round((cat.count / totalCount) * 100)}%)
-                    </span>
+                    <span className="text-xs font-semibold text-slate-500">{cat.count}</span>
                   </div>
-                  <div className="h-1.5 w-full rounded-full bg-slate-800 overflow-hidden">
+                  {/* Progress bar track */}
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                    {/* Progress bar fill */}
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-500"
+                      className={cn(
+                        "h-full rounded-full bg-blue-500 transition-all duration-500 ease-in-out",
+                        "group-hover:bg-blue-600"
+                      )}
                       style={{ width: `${pct}%` }}
-                      role="progressbar"
-                      aria-valuenow={cat.count}
-                      aria-valuemax={maxCount}
-                      aria-label={`${cat.label} ${cat.count} of ${maxCount}`}
                     />
                   </div>
                 </Link>
