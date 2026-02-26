@@ -12,6 +12,7 @@ import { RecentlyAddedPanel } from "@/components/dashboard/recently-added-panel"
 import { ActionRequiredPanel } from "@/components/dashboard/action-required-panel";
 import { CategoryDistributionPanel } from "@/components/dashboard/category-distribution-panel";
 import { UpcomingTimelinePanel } from "@/components/dashboard/upcoming-timeline-panel";
+import { CalendarWidget } from "@/components/dashboard/calendar-widget";
 
 export default async function Dashboard() {
   const clerkUserId = await requireUser();
@@ -258,11 +259,14 @@ export default async function Dashboard() {
             />
           </div>
 
-          {/* Row 3: Category Distribution + Upcoming Timeline */}
+          {/* Row 3: Category Distribution + Calendar + Upcoming Timeline */}
           <div className="col-span-12 lg:col-span-4">
             <CategoryDistributionPanel items={items} />
           </div>
-          <div className="col-span-12 lg:col-span-8">
+          <div className="col-span-12 lg:col-span-4">
+            <CalendarWidget items={items} today={now} />
+          </div>
+          <div className="col-span-12 lg:col-span-4">
             <UpcomingTimelinePanel items={upcomingItems} />
           </div>
         </div>
