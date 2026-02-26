@@ -33,104 +33,105 @@ function getDayLabel(daysLeft: number): string {
   return `In ${daysLeft} day${daysLeft !== 1 ? "s" : ""}`;
 }
 
-type ItemColor = "rose" | "orange" | "teal";
+type ItemColor = "red" | "amber" | "blue";
 
 function getItemColor(daysLeft: number | null): ItemColor {
-  if (daysLeft === null || daysLeft > 30) return "teal";
-  if (daysLeft <= 7) return "rose";
-  return "orange";
+  if (daysLeft === null || daysLeft > 30) return "blue";
+  if (daysLeft <= 7) return "red";
+  return "amber";
 }
 
 const dotStyles: Record<ItemColor, string> = {
-  rose: "border-rose-400 bg-rose-900/50 shadow-[0_0_10px_rgba(251,113,133,0.5)]",
-  orange: "border-orange-400 bg-orange-900/50 shadow-[0_0_10px_rgba(251,146,60,0.5)]",
-  teal: "border-teal-400 bg-teal-900/50 shadow-[0_0_10px_rgba(45,212,191,0.5)]",
-};
-
-const labelStyles: Record<ItemColor, string> = {
-  rose: "text-rose-400",
-  orange: "text-orange-400",
-  teal: "text-teal-400",
+  red: "border-red-200 bg-red-100",
+  amber: "border-amber-200 bg-amber-100",
+  blue: "border-blue-200 bg-blue-100",
 };
 
 const badgeStyles: Record<ItemColor, string> = {
-  rose: "bg-rose-500/10 border-rose-500/20 text-rose-400",
-  orange: "bg-orange-500/10 border-orange-500/20 text-orange-400",
-  teal: "bg-teal-500/10 border-teal-500/20 text-teal-400",
+  red: "bg-red-50 border-red-100 text-red-700",
+  amber: "bg-amber-50 border-amber-100 text-amber-700",
+  blue: "bg-blue-50 border-blue-100 text-blue-700",
 };
+
+const textStyles: Record<ItemColor, string> = {
+  red: "text-red-600",
+  amber: "text-amber-600",
+  blue: "text-blue-600",
+}
 
 export function UpcomingTimelinePanel({ items }: UpcomingTimelinePanelProps) {
   return (
-    <div className="h-full rounded-3xl bg-slate-900/60 backdrop-blur-xl border border-white/5 p-6 flex flex-col">
+    <div className="h-full rounded-xl bg-white border border-slate-200 p-6 shadow-sm flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-teal-500/10 border border-teal-500/20">
-          <GitCommit className="h-4 w-4 text-teal-400" aria-hidden="true" />
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 border border-slate-200">
+          <GitCommit className="h-4 w-4 text-slate-600" aria-hidden="true" />
         </div>
-        <h3 className="text-sm font-semibold text-white">Upcoming Timeline</h3>
+        <h3 className="text-sm font-semibold text-slate-900">Upcoming Deadlines</h3>
       </div>
 
       {/* Content */}
       {items.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 py-8">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-800 border border-white/5">
-            <Calendar className="h-6 w-6 text-slate-500" aria-hidden="true" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-50 border border-slate-200">
+            <Calendar className="h-5 w-5 text-slate-400" aria-hidden="true" />
           </div>
-          <p className="text-sm text-slate-500">No upcoming expirations</p>
+          <p className="text-sm text-slate-500 font-medium">No upcoming deadlines.</p>
         </div>
       ) : (
         <div className="relative flex-1">
-          {/* Vertical line */}
+          {/* Vertical timeline line */}
           <div
-            className="absolute left-[7px] top-0 bottom-0 w-px bg-gradient-to-b from-teal-400 via-cyan-500 to-transparent opacity-30"
+            className="absolute bottom-0 left-[11px] top-2 w-px bg-slate-200"
             aria-hidden="true"
           />
 
-          <ul className="relative space-y-5">
-            {items.map((item) => {
-              const date = item.expirationDate ?? item.renewalDate;
-              const daysLeft = getDaysLeft(date);
+          <ul className="space-y-5 relative">
+            {items.map((item, i) => {
+              const targetDate = item.expirationDate ?? item.renewalDate;
+              const daysLeft = getDaysLeft(targetDate);
               const color = getItemColor(daysLeft);
 
               return (
-                <li key={item.id} className="flex items-start gap-4 pl-1">
-                  {/* Dot */}
-                  <div
-                    className={cn(
-                      "mt-1 h-4 w-4 shrink-0 rounded-full border-2",
-                      dotStyles[color]
-                    )}
-                    aria-hidden="true"
-                  />
-
-                  <div className="min-w-0 flex-1">
-                    <Link
-                      href={`/dashboard/items/${item.id}`}
-                      className="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 rounded"
-                      aria-label={`View ${item.name}`}
+                <li key={item.id} className="relative flex items-start gap-4">
+                  {/* Timeline dot */}
+                  <div className="relative mt-1 flex shrink-0 items-center justify-center">
+                    <span
+                      className={cn(
+                        "h-6 w-6 rounded-full border-2 flex items-center justify-center z-10",
+                        dotStyles[color]
+                      )}
                     >
-                      <p className="truncate text-sm font-medium text-slate-200 group-hover:text-white transition-colors">
-                        {item.name}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        {date && (
-                          <span
-                            className={cn(
-                              "rounded-full border px-2 py-0.5 text-[10px] font-medium",
-                              badgeStyles[color]
-                            )}
-                          >
-                            {formatExpiryDate(date)}
-                          </span>
-                        )}
-                        {daysLeft !== null && (
-                          <span className={cn("text-xs font-medium", labelStyles[color])}>
-                            {getDayLabel(daysLeft)}
-                          </span>
+                        <span className={cn("w-2 h-2 rounded-full", color === "red" ? "bg-red-500" : color === "amber" ? "bg-amber-500" : "bg-blue-500")} />
+                    </span>
+                  </div>
+
+                  <Link
+                    href={`/dashboard/items/${item.id}`}
+                    className="group block flex-1 rounded-lg border border-slate-100 bg-slate-50/50 p-3 transition-all hover:bg-white hover:border-slate-300 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">
+                          {item.name}
+                        </p>
+                        {targetDate && (
+                          <p className="mt-0.5 text-xs text-slate-500 font-medium flex items-center gap-1.5">
+                            <Calendar className="w-3 h-3" />
+                            {formatExpiryDate(targetDate)}
+                          </p>
                         )}
                       </div>
-                    </Link>
-                  </div>
+                      <div
+                        className={cn(
+                          "inline-flex w-fit items-center rounded-md border px-2 py-1 text-[10px] font-bold uppercase tracking-wider",
+                          badgeStyles[color]
+                        )}
+                      >
+                        {daysLeft !== null ? getDayLabel(daysLeft) : "Unknown"}
+                      </div>
+                    </div>
+                  </Link>
                 </li>
               );
             })}
